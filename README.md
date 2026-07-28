@@ -71,13 +71,22 @@ The tier **rebuilds the extension every run**. That is not incidental: the artif
 under test has to match the source that produced it, and a stale `build/extension`
 hides a fix exactly as well as it hides a bug.
 
-It runs **every** file, not a curated subset. Files needing a live daemon skip
-themselves via `fixtures.js`'s `probeNode()`, so with no node reachable the suite
-settles at 61 passed / 9 skipped / 0 failed. A hand-written "these are the safe ones"
-list would be the same trap as a hand-written browser-test list: the file left off it
-looks exactly like one that passed.
+It runs **every** file, not a curated subset. With no node reachable the suite settles
+at **50 passed / 20 skipped / 0 failed**. A hand-written "these are the safe ones" list
+would be the same trap as a hand-written browser-test list: the file left off it looks
+exactly like one that passed.
 
-To run it directly, or to exercise the 9 node-dependent tests:
+**Node-dependent tests are gated at registration time**, via `NODE_AVAILABLE` in
+`fixtures.js`, which probes synchronously when the module is required. That is not a
+style choice. Jest evaluates `describe` bodies before any `beforeAll` runs, so the old
+`describeIfNode = nodeAvailable ? describe : describe.skip` was reading a flag that was
+still `false` — it was *always* `describe.skip`, and 9 tests behind it could never run
+under any conditions. A further 15 used a `runIfNodeAvailable()` wrapper *inside* the
+test body, which returned early and reported a **pass having executed nothing**. Both
+now resolve to `it.skip`/`describe.skip` when no node answers, so a skip is a skip and
+a pass is a pass.
+
+To run it directly, or to exercise the 20 node-dependent tests:
 
 ```sh
 npm install
@@ -90,6 +99,21 @@ npm run test:signal-e2e -- test/e2e/multi_wallet_scan.test.js   # single file
 their own regtest daemons, so the result would depend on a foreign process and
 `flushDoNotRelayTransactions()` would act on somebody else's chain. The tier pins it to
 an unreachable address unless you override it, for exactly that reason.
+
+Against a node, all 70 execute and 69 passed on a public stagenet node. Two caveats,
+both about *shared* nodes rather than the code:
+
+- **Scan time varies enormously.** The same ~130k-block scan took 31s, 130s and 186s on
+  consecutive runs against a public node. `E2E_SCAN_TIMEOUT_MS` (default 300000) is a
+  ceiling, not a delay — raise it for a slow remote, lower it for a local one.
+- **The live-broadcast tests depend on mempool state you do not control.** `TX-02`
+  ("validates broadcast … without relaying") passes in isolation and fails after another
+  file has put a conflicting do-not-relay transaction in a *shared* pool.
+  `flushDoNotRelayTransactions()` cleans up, but a public node will usually refuse the
+  admin RPC. These want a private node.
+
+So: a public node is fine for confirming the suite runs, and a dedicated node is what
+makes the live-transaction tests reliable.
 
 `npm test` is the broader repo-style path that also runs the Rust suite; unrelated Rust
 regressions can fail it.

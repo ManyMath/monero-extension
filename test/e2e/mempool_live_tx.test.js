@@ -8,7 +8,13 @@ const {
   probeNode,
   flushDoNotRelayTransactions,
   waitForScanCompletion,
+  NODE_AVAILABLE,
+  SCAN_TIMEOUT_MS,
 } = require('./fixtures');
+
+// Gated at registration time, not inside the test body: jest has no runtime
+// skip, so a body that returns early reports a PASS having executed nothing.
+const itIfNode = NODE_AVAILABLE ? it : it.skip;
 
 const NODE_URL = process.env.STAGENET_NODE_URL || 'http://127.0.0.1:38081';
 const LIVE_TX_SCAN_START_HEIGHT = 2043388;
@@ -100,7 +106,7 @@ describe('Mempool & Live-Node Transaction Tests', () => {
     }
   });
 
-  it('scans the mempool via MempoolScanRequest', async () => {
+  itIfNode('scans the mempool via MempoolScanRequest', async () => {
     await runIfNodeAvailable(nodeAvailable, 'SCAN-03', async () => {
       const response = await sendSignalAndWait(
         extPage,
@@ -126,7 +132,7 @@ describe('Mempool & Live-Node Transaction Tests', () => {
     });
   }, 30000);
 
-  it('creates a live transaction via CreateTransactionRequest', async () => {
+  itIfNode('creates a live transaction via CreateTransactionRequest', async () => {
     await runIfNodeAvailable(nodeAvailable, 'TX-01', async () => {
       expect(daemonHeight).toBeGreaterThan(LIVE_TX_SCAN_START_HEIGHT);
 
@@ -143,7 +149,7 @@ describe('Mempool & Live-Node Transaction Tests', () => {
           bip39_account_index: 0,
           allow_insecure_http: true,
         }),
-        120000
+        SCAN_TIMEOUT_MS
       );
 
       expect(scanResp.daemon_height).toBeGreaterThan(LIVE_TX_SCAN_START_HEIGHT);
@@ -174,9 +180,9 @@ describe('Mempool & Live-Node Transaction Tests', () => {
 
       createdTx = createResp;
     });
-  }, 130000);
+  }, SCAN_TIMEOUT_MS + 60000);
 
-  it('validates broadcast via BroadcastTransactionRequest without relaying', async () => {
+  itIfNode('validates broadcast via BroadcastTransactionRequest without relaying', async () => {
     await runIfNodeAvailable(nodeAvailable, 'TX-02', async () => {
       expect(createdTx).toBeTruthy();
 

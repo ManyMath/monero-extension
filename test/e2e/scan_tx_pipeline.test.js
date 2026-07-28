@@ -9,6 +9,7 @@ const {
   UNSIGNED_TX_HEX,
   sendSignalAndWait,
   probeNode,
+  NODE_AVAILABLE,
 } = require('./fixtures');
 
 describe('Scan & TX Pipeline Tests', () => {
@@ -101,7 +102,7 @@ describe('Scan & TX Pipeline Tests', () => {
     if (browser) await browser.close();
   });
 
-  const describeIfNode = nodeAvailable ? describe : describe.skip;
+  const describeIfNode = NODE_AVAILABLE ? describe : describe.skip;
 
   describeIfNode('Scan', () => {
     it('receives SyncProgressResponse during continuous scan', async () => {
@@ -202,7 +203,7 @@ describe('Scan & TX Pipeline Tests', () => {
     }, 30000);
   });
 
-  const describeIfNode2 = nodeAvailable ? describe : describe.skip;
+  const describeIfNode2 = NODE_AVAILABLE ? describe : describe.skip;
 
   describeIfNode2('Online TX', () => {
     it('creates unsigned TX online', async () => {
@@ -303,7 +304,7 @@ describe('Scan & TX Pipeline Tests', () => {
     }, 15000);
   });
 
-  const describeIfNode3 = nodeAvailable ? describe : describe.skip;
+  const describeIfNode3 = NODE_AVAILABLE ? describe : describe.skip;
 
   describeIfNode3('Balance & State', () => {
     it('queries balance after scan', async () => {

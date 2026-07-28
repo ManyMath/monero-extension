@@ -10,7 +10,13 @@ const {
   probeNode,
   flushDoNotRelayTransactions,
   waitForScanCompletion,
+  NODE_AVAILABLE,
+  SCAN_TIMEOUT_MS,
 } = require('./fixtures');
+
+// Gated at registration time, not inside the test body: jest has no runtime
+// skip, so a body that returns early reports a PASS having executed nothing.
+const itIfNode = NODE_AVAILABLE ? it : it.skip;
 
 const NODE_URL = (
   process.env.STAGENET_NODE_URL ||
@@ -666,7 +672,7 @@ describe('Offline Signal Tests', () => {
   });
 
   describe('Network-dependent offline signing flow', () => {
-    it('creates unsigned tx from view-only wallet, signs offline, and validates broadcast', async () => {
+    itIfNode('creates unsigned tx from view-only wallet, signs offline, and validates broadcast', async () => {
       await runIfNodeAvailable(nodeAvailable, 'OFFLINE-UAT-01', async () => {
         const keys = await sendSignalAndWait(
           extPage,
@@ -692,7 +698,7 @@ describe('Offline Signal Tests', () => {
             passphrase: '',
             bip39_account_index: 0,
           }),
-          120000
+          SCAN_TIMEOUT_MS
         );
         expect(scanResp.is_scanning).toBe(false);
         expect(scanResp.daemon_height).toBeGreaterThan(LIVE_TX_SCAN_START_HEIGHT);
@@ -775,6 +781,6 @@ describe('Offline Signal Tests', () => {
           expect(broadcast.error).toContain('"double_spend": true');
         }
       });
-    }, 180000);
+    }, SCAN_TIMEOUT_MS + 60000);
   });
 });

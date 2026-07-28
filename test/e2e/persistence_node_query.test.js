@@ -8,6 +8,7 @@ const {
   sendSignalAndWait,
   probeNode,
   reloadExtensionPage,
+  NODE_AVAILABLE,
 } = require('./fixtures');
 
 describe('Persistence & Node-Query Tests', () => {
@@ -428,7 +429,7 @@ describe('Persistence & Node-Query Tests', () => {
     }, 30000);
   });
 
-  const describeIfNode = nodeAvailable ? describe : describe.skip;
+  const describeIfNode = NODE_AVAILABLE ? describe : describe.skip;
 
   describeIfNode('Node-Query', () => {
     let daemonHeight;

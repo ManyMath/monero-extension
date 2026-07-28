@@ -7,6 +7,7 @@ const {
   HONKED_SEED, HONKED_ADDRESS,
   sendSignalAndWait,
   probeNode,
+  NODE_AVAILABLE,
 } = require('./fixtures');
 
 // Fixture key image for offline export and freeze/thaw testing.
@@ -111,7 +112,7 @@ describe('Key Images, Proofs & Freeze Tests', () => {
   });
 
   // Helper: describeIfNode for node-dependent tests
-  const describeIfNode = nodeAvailable ? describe : describe.skip;
+  const describeIfNode = NODE_AVAILABLE ? describe : describe.skip;
 
 
   describe('Key Image Export', () => {

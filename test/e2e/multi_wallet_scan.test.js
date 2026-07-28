@@ -6,7 +6,12 @@ const {
   HEMLOCK_SEED, HEMLOCK_ADDRESS,
   sendSignalAndWait,
   probeNode,
+  NODE_AVAILABLE,
 } = require('./fixtures');
+
+// Gated at registration time, not inside the test body: jest has no runtime
+// skip, so a body that returns early reports a PASS having executed nothing.
+const itIfNode = NODE_AVAILABLE ? it : it.skip;
 
 const NODE_URL = process.env.STAGENET_NODE_URL || 'http://127.0.0.1:38081';
 const KNOWN_SCAN_HEIGHT = 1384526;
@@ -97,7 +102,7 @@ describe('Multi-Wallet Scan & Address Derivation', () => {
   });
 
   describe('Multi-Wallet Scanning', () => {
-    it('scans a known block for multiple wallets via ScanBlockMultiWalletRequest', async () => {
+    itIfNode('scans a known block for multiple wallets via ScanBlockMultiWalletRequest', async () => {
       await runIfNodeAvailable(nodeAvailable, 'SCAN-01', async () => {
         expect(daemonHeight).toBeGreaterThan(KNOWN_SCAN_HEIGHT);
 
@@ -129,7 +134,7 @@ describe('Multi-Wallet Scan & Address Derivation', () => {
       });
     }, 30000);
 
-    it('starts a continuous multi-wallet scan and emits a MultiWalletScanResponse', async () => {
+    itIfNode('starts a continuous multi-wallet scan and emits a MultiWalletScanResponse', async () => {
       await runIfNodeAvailable(nodeAvailable, 'SCAN-02', async () => {
         expect(daemonHeight).toBeGreaterThan(KNOWN_SCAN_HEIGHT);
 
@@ -156,7 +161,7 @@ describe('Multi-Wallet Scan & Address Derivation', () => {
       });
     }, 70000);
 
-    it('scans a known block for one wallet via ScanBlockRequest', async () => {
+    itIfNode('scans a known block for one wallet via ScanBlockRequest', async () => {
       await runIfNodeAvailable(nodeAvailable, 'SCAN-04', async () => {
         expect(daemonHeight).toBeGreaterThan(KNOWN_SCAN_HEIGHT);
 

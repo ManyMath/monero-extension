@@ -5,14 +5,23 @@ const {
   HONKED_SEED,
   sendSignalAndWait,
   probeNode,
+  NODE_AVAILABLE,
 } = require('./fixtures');
+
+// Gated at registration time, not inside the test body: jest has no runtime
+// skip, so a body that returns early reports a PASS having executed nothing.
+const itIfNode = NODE_AVAILABLE ? it : it.skip;
 
 const NODE_URL = process.env.STAGENET_NODE_URL || 'http://127.0.0.1:38081';
 
 // These historical blocks currently expose stable spent-key-image activity for the fixture wallet.
 const SPENT_STATUS_FIXTURE = {
   blockHeight: 2043388,
-  blockHash: '647452847e059c802805e3027725e82132e8952e0bb397e404420bb15491c849',
+  // Verified against stagenet itself via get_block_header_by_height. The previous value,
+  // 647452847e05..., is not this chain's hash at this height — the app was returning the
+  // right one and the fixture was wrong. It had never been checked because the test could
+  // not run: it sat behind a gate that was always describe.skip.
+  blockHash: '22f6841ce898cdc2912bf32354d3bed7ae0746c5926d3b035eb9997b20361d5f',
   spentKeyImage: 'd54ef9a94bdcb45830b9dbfec998902499762936e0f263543c912246e78226da',
 };
 
@@ -182,7 +191,7 @@ describe('Async Events & State Monitoring', () => {
     });
   });
 
-  it('returns synthetic pending transaction state via GetPendingStateRequest', async () => {
+  itIfNode('returns synthetic pending transaction state via GetPendingStateRequest', async () => {
     await runIfNodeAvailable(nodeAvailable, 'EVT-01', async () => {
       const createdAt = Math.floor(Date.now() / 1000);
       const pendingState = {
@@ -226,7 +235,7 @@ describe('Async Events & State Monitoring', () => {
     });
   }, 30000);
 
-  it('fires SpentStatusUpdatedResponse and clears the pending entry on historical replay', async () => {
+  itIfNode('fires SpentStatusUpdatedResponse and clears the pending entry on historical replay', async () => {
     await runIfNodeAvailable(nodeAvailable, 'EVT-02', async () => {
       const createdAt = Math.floor(Date.now() / 1000);
       await restoreWallet(extPage, {
@@ -282,7 +291,7 @@ describe('Async Events & State Monitoring', () => {
     });
   }, 40000);
 
-  it('fires DoubleSpendDetectedResponse when a restored confirmed spend is replayed at a new height', async () => {
+  itIfNode('fires DoubleSpendDetectedResponse when a restored confirmed spend is replayed at a new height', async () => {
     await runIfNodeAvailable(nodeAvailable, 'EVT-04', async () => {
       await restoreWallet(extPage, {
         seed: HONKED_SEED,
@@ -326,7 +335,7 @@ describe('Async Events & State Monitoring', () => {
     });
   }, 30000);
 
-  it('fires ReorgDetectedResponse from synthetic block-hash history drift without regtest', async () => {
+  itIfNode('fires ReorgDetectedResponse from synthetic block-hash history drift without regtest', async () => {
     await runIfNodeAvailable(nodeAvailable, 'EVT-03', async () => {
       await restoreWallet(extPage, {
         seed: HONKED_SEED,

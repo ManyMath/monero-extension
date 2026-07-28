@@ -199,6 +199,11 @@ async function flushDoNotRelayTransactions(nodeUrl = NODE_URL) {
 // ceiling, not a delay — a scan that finishes in 31s still takes 31s.
 const SCAN_TIMEOUT_MS = Number(process.env.E2E_SCAN_TIMEOUT_MS || 300000);
 
+// Building a transaction fetches ring members over RPC, so it is latency-bound the same way
+// the scan is. 60s was enough locally and not against a public node — one run finished tx
+// creation in 31s total and another spent the whole 60s on this step alone.
+const TX_TIMEOUT_MS = Number(process.env.E2E_TX_TIMEOUT_MS || 120000);
+
 async function waitForScanCompletion(page, requestJson, timeoutMs = SCAN_TIMEOUT_MS) {
   await page.waitForFunction(
     () =>
@@ -303,4 +308,5 @@ module.exports = {
   flushDoNotRelayTransactions,
   waitForScanCompletion,
   SCAN_TIMEOUT_MS,
+  TX_TIMEOUT_MS,
 };

@@ -106,14 +106,17 @@ both about *shared* nodes rather than the code:
 - **Scan time varies enormously.** The same ~130k-block scan took 31s, 130s and 186s on
   consecutive runs against a public node. `E2E_SCAN_TIMEOUT_MS` (default 300000) is a
   ceiling, not a delay — raise it for a slow remote, lower it for a local one.
-- **The live-broadcast tests depend on mempool state you do not control.** `TX-02`
-  ("validates broadcast … without relaying") passes in isolation and fails after another
-  file has put a conflicting do-not-relay transaction in a *shared* pool.
-  `flushDoNotRelayTransactions()` cleans up, but a public node will usually refuse the
-  admin RPC. These want a private node.
+- **`TX-02` needs a funded test wallet, and `HONKED_SEED`'s stagenet outputs are spent.**
+  It fails with `is_double_spend: true` — the daemon already knows those key images. The
+  app is behaving correctly at both ends: it builds a transaction from the outputs its
+  scan found, and the daemon rejects spending them again. Fixing this needs stagenet
+  funds sent to `HONKED_ADDRESS`, not a code change.
 
-So: a public node is fine for confirming the suite runs, and a dedicated node is what
-makes the live-transaction tests reliable.
+  (`flushDoNotRelayTransactions()` is unrelated cleanup and is a no-op on a public node
+  anyway — `flush_txpool` is an admin RPC and returns `-32601 Method not found` there.)
+
+So: a public node confirms the suite runs, a dedicated node makes it fast and
+predictable, and a funded wallet is what makes the live-transaction path assertable.
 
 `npm test` is the broader repo-style path that also runs the Rust suite; unrelated Rust
 regressions can fail it.

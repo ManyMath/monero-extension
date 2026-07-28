@@ -10,6 +10,7 @@ const {
   waitForScanCompletion,
   NODE_AVAILABLE,
   SCAN_TIMEOUT_MS,
+  TX_TIMEOUT_MS,
 } = require('./fixtures');
 
 // Gated at registration time, not inside the test body: jest has no runtime
@@ -168,7 +169,7 @@ describe('Mempool & Live-Node Transaction Tests', () => {
           bip39_account_index: 0,
         }),
         'TransactionCreatedResponse',
-        60000
+        TX_TIMEOUT_MS
       );
 
       expect(createResp.success).toBe(true);
@@ -180,7 +181,7 @@ describe('Mempool & Live-Node Transaction Tests', () => {
 
       createdTx = createResp;
     });
-  }, SCAN_TIMEOUT_MS + 60000);
+  }, SCAN_TIMEOUT_MS + TX_TIMEOUT_MS + 30000);
 
   itIfNode('validates broadcast via BroadcastTransactionRequest without relaying', async () => {
     await runIfNodeAvailable(nodeAvailable, 'TX-02', async () => {
@@ -201,10 +202,15 @@ describe('Mempool & Live-Node Transaction Tests', () => {
         30000
       );
 
-      expect(broadcastResp.success).toBe(true);
-      expect(broadcastResp.tx_id).toBe(createdTx.tx_id);
-      expect(broadcastResp.is_retryable).toBe(false);
-      expect(broadcastResp.is_double_spend).toBe(false);
+      // toMatchObject rather than four separate toBe assertions: on failure it prints the
+      // whole response, including `error`. `expect(resp.success).toBe(true)` reports only
+      // "expected true, received false", which is how this failure stayed unexplained.
+      expect(broadcastResp).toMatchObject({
+        success: true,
+        tx_id: createdTx.tx_id,
+        is_retryable: false,
+        is_double_spend: false,
+      });
     });
   }, 30000);
 });

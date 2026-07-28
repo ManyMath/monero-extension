@@ -38,7 +38,7 @@ describe('Offline Signal Tests', () => {
   const EXT_PATH = path.join(__dirname, '../../build/extension');
   const COLD_SIGNING_VECTOR_PATH = path.join(
     __dirname,
-    '../../../../rust/monero-rust/tests/vectors/cold_signing_regtest_v0_18_5_0'
+    '../../vendor/monero-rust/rust/monero-rust/tests/vectors/cold_signing_regtest_v0_18_5_0'
   );
   const COLD_SIGNING_VIEW_KEY =
     '49774391fa5e8d249fc2c5b45dadef13534bf2483dede880dac88f061e809100';

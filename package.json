@@ -6,8 +6,8 @@
   "scripts": {
     "test": "npm run test:repo",
     "test:repo": "npm run build && npm run test:rust && npm run test:signal-e2e:raw",
-    "test:rust": "cd ../../rust/monero-rust && cargo test --features mock-rpc --lib && cargo test --features mock-rpc --test tx_construction_test --test honked_bagpipe_tx",
-    "test:rust:all": "cd ../../rust/monero-rust && cargo test --features mock-rpc",
+    "test:rust": "cd vendor/monero-rust/rust/monero-rust && cargo test --features mock-rpc --lib && cargo test --features mock-rpc --test tx_construction_test --test honked_bagpipe_tx",
+    "test:rust:all": "cd vendor/monero-rust/rust/monero-rust && cargo test --features mock-rpc",
     "test:signal-e2e": "npm run build && npm run test:signal-e2e:raw --",
     "test:signal-e2e:raw": "jest --runInBand",
     "test:signal-e2e:v1.2": "npm run build && npm run test:signal-e2e:raw -- test/e2e/multi_wallet_scan.test.js && npm run test:signal-e2e:raw -- test/e2e/mempool_live_tx.test.js && npm run test:signal-e2e:raw -- test/e2e/async_events_state_monitoring.test.js && npm run test:signal-e2e:raw -- test/e2e/error_edge_cases.test.js",

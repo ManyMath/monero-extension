@@ -48,7 +48,21 @@ window.wasmBindingsReady = (async function initWasmBindings() {
         continue;
       }
 
-      if (typeof value === 'function') {
+      // Classes are `typeof 'function'` too, and Function.prototype.bind returns a bound
+      // function carrying none of the target's own properties — so binding a class
+      // silently strips every static method on it. TestApi is the only class
+      // wasm-bindgen exports here and its entire API is static, so it reached the page
+      // as an empty shell: `wasmBindings.TestApi` was defined, and every method on it
+      // was undefined. Nothing threw, and the app never noticed because it talks to
+      // Rust through the send_* signals instead.
+      //
+      // Detect a class by its `prototype` property descriptor rather than by parsing
+      // source: a class's is non-writable, a normal function's is writable, and methods
+      // and arrow functions have none at all. That survives minification.
+      const prototypeDescriptor = Object.getOwnPropertyDescriptor(value, 'prototype');
+      const isClass = prototypeDescriptor !== undefined && prototypeDescriptor.writable === false;
+
+      if (typeof value === 'function' && !isClass) {
         wrappedBindings[key] = value.bind(wasmModule);
         continue;
       }

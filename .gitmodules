@@ -1,0 +1,3 @@
+[submodule "vendor/monero-rust"]
+	path = vendor/monero-rust
+	url = https://olive-potoo.pikapod.net/sneurlax/monero-rust.git

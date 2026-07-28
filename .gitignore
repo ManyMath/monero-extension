@@ -41,6 +41,9 @@ app.*.map.json
 # Rust
 /.cargo/
 /target/
+# native/codegen has its own [workspace], so it builds into its own target/ rather than the
+# root one that /target/ covers. Unanchored, to catch any other nested workspace too.
+target/
 
 # lib/src/bindings held rinf's generated signals, and the whole directory was ignored
 # for it. rinf is gone; what lives there now is a hand-written re-export plus the ffigen

@@ -38,6 +38,10 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# The e2e tier's toolchain. package-lock.json IS committed, so `npm install` resolves the
+# same puppeteer for everyone; node_modules itself is not.
+/node_modules/
+
 # Rust
 /.cargo/
 /target/

@@ -132,6 +132,42 @@ else
     fi
 fi
 
+step "end-to-end in a real browser (puppeteer)"
+# 70 tests, ~460 assertions, and until now nothing ran any of them. The whole suite runs
+# here, not a hand-picked subset: the files that need a live daemon skip themselves through
+# fixtures.js's probeNode(), so with no node reachable this settles at 61 passed / 9
+# skipped / 0 failed. A hand-written "these ones are safe" list would be the same trap as a
+# hand-written browser-test list — the file left off it looks exactly like one that passed.
+#
+# STAGENET_NODE_URL is pinned to an unreachable address unless the caller sets it, and that
+# is deliberate. Left unset the suite defaults to 127.0.0.1:38081, which on this machine is
+# routinely bound by another project's regtest daemon — so the tier's result would depend on
+# a foreign process, and fixtures.js's flushDoNotRelayTransactions() would act on somebody
+# else's chain. Set it yourself to exercise the 9 node-dependent tests.
+if ! command -v npm >/dev/null 2>&1; then
+    echo "npm not on PATH — skipping the e2e tier" >&2
+elif [ ! -d "$ROOT/node_modules" ]; then
+    echo "node_modules absent — skipping the e2e tier. Run:" >&2
+    echo "  npm install" >&2
+elif ! command -v wasm-pack >/dev/null 2>&1; then
+    echo "wasm-pack not on PATH — skipping the e2e tier (it builds the extension)" >&2
+    echo "  cargo install wasm-pack" >&2
+elif ! command -v flutter >/dev/null 2>&1; then
+    echo "flutter not on PATH — skipping the e2e tier (it builds the extension)" >&2
+else
+    # Always rebuild. The artifact under test has to match the source that produced it —
+    # the extension_bridge.js class-binding bug was only visible once the extension was
+    # rebuilt, and a stale build/extension would have hidden the fix as easily as the bug.
+    E2E_BUILD_LOG="$(mktemp)"
+    if ! (cd "$ROOT" && dart run tool/build_extension.dart) >"$E2E_BUILD_LOG" 2>&1; then
+        tail -n 20 "$E2E_BUILD_LOG" >&2
+        record_failure "e2e extension build"
+    elif ! (cd "$ROOT" && STAGENET_NODE_URL="${STAGENET_NODE_URL:-http://127.0.0.1:9}" \
+            npx jest --runInBand test/e2e); then
+        record_failure "e2e tests"
+    fi
+fi
+
 echo
 if [ -n "$FAILED" ]; then
     echo "FAILED:$FAILED"

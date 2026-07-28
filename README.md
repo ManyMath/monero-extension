@@ -40,10 +40,10 @@ Everything, in one command:
 scripts/test-all.sh
 ```
 
-Five tiers: the `monero_wasm` wasm32 build, the signal generator's own tests, the
-generated-signal-surface check, the dart suite and the browser suite. A missing or
-broken toolchain is reported as a **skip**; a tier that runs and fails is a
-**failure**. The two are never conflated — keep it that way.
+Six tiers: the `monero_wasm` wasm32 build, the signal generator's own tests, the
+generated-signal-surface check, the dart suite, the browser suite, and the puppeteer
+e2e suite. A missing or broken toolchain is reported as a **skip**; a tier that runs
+and fails is a **failure**. The two are never conflated — keep it that way.
 
 `flutter test` silently skips `@TestOn('browser')` files, which is why the browser
 tier gets its own invocation, and why the runner *discovers* those files by
@@ -62,33 +62,34 @@ cd native/monero_wasm && cargo test --lib
 flutter test
 ```
 
-### E2E (Puppeteer/Jest) — not in any tier
+### E2E (Puppeteer/Jest)
+`scripts/test-all.sh` runs the whole suite as its sixth tier — 70 tests, ~460
+assertions, in a real Chrome with the built extension loaded. It needs `npm install`
+once; without `node_modules` the tier reports a skip rather than passing quietly.
+
+The tier **rebuilds the extension every run**. That is not incidental: the artifact
+under test has to match the source that produced it, and a stale `build/extension`
+hides a fix exactly as well as it hides a bug.
+
+It runs **every** file, not a curated subset. Files needing a live daemon skip
+themselves via `fixtures.js`'s `probeNode()`, so with no node reachable the suite
+settles at 61 passed / 9 skipped / 0 failed. A hand-written "these are the safe ones"
+list would be the same trap as a hand-written browser-test list: the file left off it
+looks exactly like one that passed.
+
+To run it directly, or to exercise the 9 node-dependent tests:
+
 ```sh
 npm install
-npm run test:signal-e2e -- test/e2e/multi_wallet_scan.test.js
-npm run test:signal-e2e:v1.2
-npm test
+STAGENET_NODE_URL=http://127.0.0.1:$PORT npx jest --runInBand test/e2e
+npm run test:signal-e2e -- test/e2e/multi_wallet_scan.test.js   # single file
 ```
 
-Use `npm run test:signal-e2e -- <jest paths...>` for the dedicated signal-level Puppeteer/Jest entrypoint.
-Use `npm test` only for the broader repo-style path that also runs the Rust suite; unrelated Rust regressions can still fail that command.
+**Always set `STAGENET_NODE_URL` explicitly.** Unset, it falls back to
+`http://127.0.0.1:38081` — the stagenet port, which other projects routinely bind for
+their own regtest daemons, so the result would depend on a foreign process and
+`flushDoNotRelayTransactions()` would act on somebody else's chain. The tier pins it to
+an unreachable address unless you override it, for exactly that reason.
 
-**`scripts/test-all.sh` does not run these**, because they need a built extension, a
-puppeteer download and in most cases a live node. So nothing exercises them routinely —
-treat them as unverified until you have watched them pass.
-
-They are not *stale*, though, which is worth knowing before you distrust them: all 39
-`send_*` exports they call still exist in the generated wasm surface (checked against the
-`dart_signal!` invocations in `ffi_web.rs`, not against a hand-written list).
-
-**The node they talk to is `$STAGENET_NODE_URL`**, falling back to `http://127.0.0.1:38081`
-when unset. Point it somewhere explicit before running:
-
-```sh
-STAGENET_NODE_URL=http://127.0.0.1:$PORT npm run test:signal-e2e -- test/e2e/...
-```
-
-That default is a landmine on a shared machine. 38081 is the stagenet port, and other
-projects bind it for their own regtest daemons — so an unset variable can aim
-`flushDoNotRelayTransactions()` at somebody else's chain. Every file now reads the
-variable; previously eight of them hardcoded the address.
+`npm test` is the broader repo-style path that also runs the Rust suite; unrelated Rust
+regressions can fail it.

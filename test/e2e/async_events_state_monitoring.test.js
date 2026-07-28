@@ -7,7 +7,7 @@ const {
   probeNode,
 } = require('./fixtures');
 
-const NODE_URL = 'http://127.0.0.1:38081';
+const NODE_URL = process.env.STAGENET_NODE_URL || 'http://127.0.0.1:38081';
 
 // These historical blocks currently expose stable spent-key-image activity for the fixture wallet.
 const SPENT_STATUS_FIXTURE = {

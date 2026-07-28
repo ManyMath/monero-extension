@@ -1,6 +1,8 @@
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
+
+const NODE_URL = process.env.STAGENET_NODE_URL || 'http://127.0.0.1:38081';
 const {
   HONKED_SEED, HONKED_ADDRESS,
   sendSignalAndWait,
@@ -136,7 +138,7 @@ describe('Key Images, Proofs & Freeze Tests', () => {
         'send_import_key_images_request',
         JSON.stringify({
           data_hex: exportedHex,
-          node_url: 'http://127.0.0.1:38081',
+          node_url: NODE_URL,
           seed: HONKED_SEED,
           passphrase: '',
           bip39_account_index: 0,

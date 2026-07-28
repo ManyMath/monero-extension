@@ -1,6 +1,8 @@
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
+
+const NODE_URL = process.env.STAGENET_NODE_URL || 'http://127.0.0.1:38081';
 const {
   HONKED_SEED, HONKED_ADDRESS,
   sendSignalAndWait,
@@ -180,7 +182,7 @@ describe('Persistence & Node-Query Tests', () => {
             seed: `quota seed ${walletIndex}`,
             network: 'stagenet',
             address: '5quota'.padEnd(95, String(walletIndex)),
-            node_url: 'http://127.0.0.1:38081',
+            node_url: NODE_URL,
             outputs,
             transactions,
             continuous_scan_current_height: 203200,
@@ -433,7 +435,7 @@ describe('Persistence & Node-Query Tests', () => {
       const response = await sendSignalAndWait(
         extPage,
         'send_query_daemon_height_request',
-        JSON.stringify({ node_url: 'http://127.0.0.1:38081' }),
+        JSON.stringify({ node_url: NODE_URL }),
         'DaemonHeightResponse',
         15000
       );
@@ -449,7 +451,7 @@ describe('Persistence & Node-Query Tests', () => {
       const response = await sendSignalAndWait(
         extPage,
         'send_get_block_height_from_timestamp_request',
-        JSON.stringify({ timestamp: 1704067200, node_url: 'http://127.0.0.1:38081' }),
+        JSON.stringify({ timestamp: 1704067200, node_url: NODE_URL }),
         'BlockHeightFromTimestampResponse',
         15000
       );

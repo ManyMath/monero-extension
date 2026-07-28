@@ -2,6 +2,8 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
+
+const NODE_URL = process.env.STAGENET_NODE_URL || 'http://127.0.0.1:38081';
 const {
   HONKED_SEED, HONKED_ADDRESS,
   UNSIGNED_TX_HEX,
@@ -87,7 +89,7 @@ describe('Scan & TX Pipeline Tests', () => {
       const heightResp = await sendSignalAndWait(
         extPage,
         'send_query_daemon_height_request',
-        JSON.stringify({ node_url: 'http://127.0.0.1:38081' }),
+        JSON.stringify({ node_url: NODE_URL }),
         'DaemonHeightResponse',
         15000
       );
@@ -104,7 +106,7 @@ describe('Scan & TX Pipeline Tests', () => {
   describeIfNode('Scan', () => {
     it('receives SyncProgressResponse during continuous scan', async () => {
       const scanPayload = JSON.stringify({
-        node_url: 'http://127.0.0.1:38081',
+        node_url: NODE_URL,
         start_height: daemonHeight - 100,
         seed: HONKED_SEED,
         network: 'stagenet',
@@ -228,7 +230,7 @@ describe('Scan & TX Pipeline Tests', () => {
         extPage,
         'send_create_unsigned_transaction_request',
         JSON.stringify({
-          node_url: 'http://127.0.0.1:38081',
+          node_url: NODE_URL,
           view_key_hex: keysResp.secret_view_key,
           pub_spend_key_hex: keysResp.public_spend_key,
           network: 'stagenet',
@@ -276,7 +278,7 @@ describe('Scan & TX Pipeline Tests', () => {
 
       const validateResult = await new Promise((resolve, reject) => {
         const body = JSON.stringify({ tx_as_hex: signedTxBlob, do_not_relay: true });
-        const req = http.request('http://127.0.0.1:38081/send_raw_transaction', {
+        const req = http.request(NODE_URL + '/send_raw_transaction', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
         }, (res) => {

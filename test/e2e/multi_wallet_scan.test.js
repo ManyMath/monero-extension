@@ -8,7 +8,7 @@ const {
   probeNode,
 } = require('./fixtures');
 
-const NODE_URL = 'http://127.0.0.1:38081';
+const NODE_URL = process.env.STAGENET_NODE_URL || 'http://127.0.0.1:38081';
 const KNOWN_SCAN_HEIGHT = 1384526;
 const KNOWN_OUTPUT_TX = '07a561e60118c0a485b20bbfac787fd8efead96a9f422d9dff4a86f2985db7c5';
 

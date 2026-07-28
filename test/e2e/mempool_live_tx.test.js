@@ -10,7 +10,7 @@ const {
   waitForScanCompletion,
 } = require('./fixtures');
 
-const NODE_URL = 'http://127.0.0.1:38081';
+const NODE_URL = process.env.STAGENET_NODE_URL || 'http://127.0.0.1:38081';
 const LIVE_TX_SCAN_START_HEIGHT = 2043388;
 
 async function runIfNodeAvailable(nodeAvailable, testName, fn) {

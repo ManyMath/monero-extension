@@ -300,7 +300,11 @@ describe('Core Monero WASM', () => {
       const response = await sendSignalAndWait(
         extPage,
         'send_export_keys_file_request',
-        JSON.stringify({ password: 'test_password', network: 'stagenet' }),
+        // seed is required. Omitting it made the JSON fail to deserialise before it
+        // reached the actor, so send_* returned an error, the bridge turned that into a
+        // bridge-error signal nothing here listens for, and this waited out the full
+        // timeout for a response that could never arrive.
+        JSON.stringify({ seed: TEST_SEED, password: 'test_password', network: 'stagenet' }),
         'ExportKeysFileResponse',
         15000
       );

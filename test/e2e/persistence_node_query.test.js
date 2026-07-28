@@ -111,7 +111,9 @@ describe('Persistence & Node-Query Tests', () => {
     }, 10000);
 
     it('keeps oversized wallet histories in IndexedDB behind chrome.storage markers', async () => {
-      const result = await extPage.evaluate(async () => {
+      // NODE_URL has to be passed in: this callback is serialised and run inside the
+      // page, where the Node-side module scope does not exist.
+      const result = await extPage.evaluate(async (NODE_URL) => {
         if (!chrome?.storage?.local) {
           return { success: false, error: 'chrome.storage.local unavailable' };
         }
@@ -236,7 +238,7 @@ describe('Persistence & Node-Query Tests', () => {
           }
           db.close();
         }
-      });
+      }, NODE_URL);
 
       expect(result.success).toBe(true);
       expect(result.walletCount).toBe(4);

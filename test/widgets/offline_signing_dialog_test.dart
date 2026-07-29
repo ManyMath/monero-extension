@@ -37,6 +37,48 @@ class RecordingSignalSender implements SignalSender {
   }
 }
 
+
+/// Walk the confirmation step the dialog now interposes before signing.
+///
+/// The dialog no longer signs whatever it is handed: an unsigned transaction is authored
+/// by the untrusted online wallet, so the user is shown every destination first. These
+/// tests assert the signing request, which now lives on the far side of that screen.
+Future<void> confirmDestinations(
+  WidgetTester tester,
+  RecordingSignalSender sender, {
+  bool changeIsOurs = true,
+}) async {
+  expect(
+    sender.sent.last.name,
+    'send_preview_unsigned_transaction_request',
+    reason: 'the dialog must ask what the transaction pays before signing it',
+  );
+  sender.emit('UnsignedTransactionPreviewedResponse', {
+    'success': true,
+    'error': null,
+    'error_code': null,
+    'error_hint': null,
+    'error_transient': null,
+    'destinations': [
+      {
+        'address': '4' + 'a' * 94,
+        'amount': 800000000000,
+        'is_change': false,
+        'is_ours': false,
+      },
+      {
+        'address': '4' + 'b' * 94,
+        'amount': 199900000000,
+        'is_change': true,
+        'is_ours': changeIsOurs,
+      },
+    ],
+  });
+  await tester.pump();
+  await tester.tap(find.text('Sign'));
+  await tester.pump();
+}
+
 void main() {
   late RecordingSignalSender sender;
 
@@ -79,6 +121,8 @@ void main() {
     await tester.enterText(find.byType(TextField), 'abcdef');
     await tester.tap(find.text('From Text'));
     await tester.pump();
+
+    await confirmDestinations(tester, sender);
 
     expect(sender.sent.last.name, 'send_sign_unsigned_transaction_request');
     expect(sender.sent.last.data['unsigned_tx_hex'], 'abcdef');
@@ -144,6 +188,8 @@ void main() {
     await tester.enterText(find.byType(TextField), unsignedTxSetHex);
     await tester.tap(find.text('From Text'));
     await tester.pump();
+
+    await confirmDestinations(tester, sender);
 
     expect(sender.sent.last.name, 'send_sign_unsigned_transaction_request');
     expect(sender.sent.last.data['unsigned_tx_hex'], unsignedTxSetHex);
@@ -219,6 +265,8 @@ void main() {
     await tester.tap(find.text('From Text'));
     await tester.pump();
 
+    await confirmDestinations(tester, sender);
+
     expect(sender.sent.last.name, 'send_sign_unsigned_transaction_request');
     expect(sender.sent.last.data['unsigned_tx_hex'], unsignedTxSetHex);
 
@@ -272,5 +320,79 @@ void main() {
     expect(result!.txKey, '2' * 64);
     expect(result!.txKeyAdditional, ['3' * 64]);
     expect(result!.spentKeyImages, ['d' * 64]);
+  });
+
+  testWidgets('will not sign when the preview shows change going elsewhere', (
+    tester,
+  ) async {
+    final unsignedTxSetHex = '${unsignedMoneroTxSetMagicHex}aabbccdd';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => ElevatedButton(
+            onPressed: () async {
+              await OfflineSigningDialog.show(
+                context,
+                isViewOnly: false,
+                seed: 'cold seed words',
+                network: 'mainnet',
+              );
+            },
+            child: const Text('Open'),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), unsignedTxSetHex);
+    await tester.tap(find.text('From Text'));
+    await tester.pump();
+
+    expect(sender.sent.last.name, 'send_preview_unsigned_transaction_request');
+    sender.emit('UnsignedTransactionPreviewedResponse', {
+      'success': true,
+      'error': null,
+      'error_code': null,
+      'error_hint': null,
+      'error_transient': null,
+      'destinations': [
+        {
+          'address': '4' + 'a' * 94,
+          'amount': 800000000000,
+          'is_change': false,
+          'is_ours': false,
+        },
+        {
+          // The attack: declared as change, payable only by someone else.
+          'address': '4' + 'c' * 94,
+          'amount': 199900000000,
+          'is_change': true,
+          'is_ours': false,
+        },
+      ],
+    });
+    await tester.pump();
+
+    expect(
+      find.textContaining('NOT YOUR ADDRESS'),
+      findsOneWidget,
+      reason: 'redirected change must be called out, not rendered as ordinary change',
+    );
+
+    // warnIfMissed: false because the button is *meant* to be disabled here — the tap
+    // landing on nothing is the behaviour under test, not an accident of layout.
+    await tester.tap(find.text('Sign'), warnIfMissed: false);
+    await tester.pump();
+
+    expect(
+      sender.sent.any(
+        (signal) => signal.name == 'send_sign_unsigned_transaction_request',
+      ),
+      isFalse,
+      reason: 'the dialog must not sign a transaction whose change is redirected',
+    );
   });
 }

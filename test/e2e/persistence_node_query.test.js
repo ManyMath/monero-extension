@@ -426,7 +426,8 @@ describe('Persistence & Node-Query Tests', () => {
         10000
       );
       expect(afterReload).toEqual(beforeReload);
-    }, 30000);
+      // Measured ~28s after the oversized-history test fills IndexedDB.
+    }, 150000);
   });
 
   const describeIfNode = NODE_AVAILABLE ? describe : describe.skip;

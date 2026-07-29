@@ -11,6 +11,8 @@ enum OfflineSignStep {
   showUnsignedQr,
   importSignedTx,
   importUnsignedTx,
+  previewing,
+  confirmDestinations,
   signing,
   buildingSignedTxSet,
   extractingSignedTxSet,
@@ -94,6 +96,9 @@ class _OfflineSigningDialogState extends State<OfflineSigningDialog> {
   final _importController = TextEditingController();
 
   StreamSubscription? _signSub;
+  StreamSubscription? _previewSub;
+  List<TransactionDestinationPreview> _destinations = const [];
+  String? _pendingUnsignedHex;
   StreamSubscription? _signedTxSetSub;
   StreamSubscription? _builtTxSetSub;
 
@@ -114,6 +119,7 @@ class _OfflineSigningDialogState extends State<OfflineSigningDialog> {
   @override
   void dispose() {
     _signSub?.cancel();
+    _previewSub?.cancel();
     _signedTxSetSub?.cancel();
     _builtTxSetSub?.cancel();
     _importController.dispose();
@@ -128,6 +134,54 @@ class _OfflineSigningDialogState extends State<OfflineSigningDialog> {
     final picked = await fileTransfer.pick();
     if (picked == null) return null;
     return _hexEncode(Uint8List.fromList(picked.bytes));
+  }
+
+  /// Ask what the transaction would pay, and show it, before signing anything.
+  ///
+  /// The unsigned transaction is authored by the online, view-only wallet, which this
+  /// signer does not trust — that asymmetry is the whole reason for signing offline.
+  /// monero-rust refuses outright to sign a transaction whose change is redirected, but a
+  /// refusal after the fact is not the same as letting the user see where their money is
+  /// going. Monero's cold-signing flow shows every destination and waits for confirmation;
+  /// this is that step.
+  void _previewOffline(String unsignedHex) {
+    if (widget.seed == null || widget.network == null) {
+      setState(() => _error = 'No seed available for signing');
+      return;
+    }
+    setState(() {
+      _step = OfflineSignStep.previewing;
+      _error = null;
+      _destinations = const [];
+      _pendingUnsignedHex = unsignedHex;
+    });
+
+    _previewSub = UnsignedTransactionPreviewedResponse.stream.listen((msg) {
+      _previewSub?.cancel();
+      _previewSub = null;
+      if (!mounted) return;
+      if (msg.success) {
+        setState(() {
+          _destinations = msg.destinations;
+          _step = OfflineSignStep.confirmDestinations;
+        });
+      } else {
+        setState(() {
+          _error = msg.error ?? 'Could not read the unsigned transaction';
+          _step = OfflineSignStep.importUnsignedTx;
+        });
+      }
+    });
+
+    PreviewUnsignedTransactionRequest(
+      seed: widget.seed!,
+      unsignedTxHex: unsignedHex,
+      network: widget.network!,
+      passphrase: '',
+      bip39AccountIndex: 0,
+      spendSecretKeyHex: widget.spendSecretKeyHex,
+      viewSecretKeyHex: widget.viewSecretKeyHex,
+    ).sendSignalToRust();
   }
 
   void _signOffline(String unsignedHex) {
@@ -375,6 +429,10 @@ class _OfflineSigningDialogState extends State<OfflineSigningDialog> {
         return 'Import Signed Transaction';
       case OfflineSignStep.importUnsignedTx:
         return 'Import Unsigned Transaction';
+      case OfflineSignStep.previewing:
+        return 'Reading Transaction...';
+      case OfflineSignStep.confirmDestinations:
+        return 'Confirm Before Signing';
       case OfflineSignStep.signing:
         return 'Signing...';
       case OfflineSignStep.buildingSignedTxSet:
@@ -396,6 +454,9 @@ class _OfflineSigningDialogState extends State<OfflineSigningDialog> {
         return _buildImportTx(signed: true);
       case OfflineSignStep.importUnsignedTx:
         return _buildImportTx(signed: false);
+      case OfflineSignStep.confirmDestinations:
+        return _buildConfirmDestinations();
+      case OfflineSignStep.previewing:
       case OfflineSignStep.signing:
       case OfflineSignStep.buildingSignedTxSet:
       case OfflineSignStep.extractingSignedTxSet:
@@ -477,7 +538,7 @@ class _OfflineSigningDialogState extends State<OfflineSigningDialog> {
                     if (signed) {
                       _handleImportedSignedHex(hex);
                     } else {
-                      _signOffline(hex);
+                      _previewOffline(hex);
                     }
                   }
                 },
@@ -497,11 +558,100 @@ class _OfflineSigningDialogState extends State<OfflineSigningDialog> {
                   if (signed) {
                     _handleImportedSignedHex(hex);
                   } else {
-                    _signOffline(hex);
+                    _previewOffline(hex);
                   }
                 },
                 icon: const Icon(Icons.check, size: 16),
                 label: const Text('From Text'),
+              ),
+            ),
+          ],
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 8),
+          Text(_error!, style: const TextStyle(color: Colors.red)),
+        ],
+      ],
+    );
+  }
+
+  /// Every destination, with the ones this wallet cannot spend from called out.
+  ///
+  /// Change that is not ours is the redirection attack, and monero-rust refuses to sign
+  /// it — but the user should see it here rather than meet a refusal they cannot explain.
+  Widget _buildConfirmDestinations() {
+    final foreignChange = _destinations.any((d) => d.isChange && !d.isOurs);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'This transaction was prepared by your online wallet. Check where it sends '
+          'your funds before signing.',
+        ),
+        const SizedBox(height: 12),
+        ..._destinations.map((destination) {
+          final label = destination.isChange
+              ? (destination.isOurs ? 'change, back to you' : 'CHANGE — NOT YOUR ADDRESS')
+              : (destination.isOurs ? 'to you' : 'to a different wallet');
+          final alarming = destination.isChange && !destination.isOurs;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${(destination.amount / 1e12).toStringAsFixed(12)} XMR',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: alarming ? Colors.red : null,
+                  ),
+                ),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: alarming ? Colors.red : Colors.grey,
+                    fontWeight: alarming ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                SelectableText(
+                  destination.address,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+                ),
+              ],
+            ),
+          );
+        }),
+        if (foreignChange) ...[
+          const SizedBox(height: 4),
+          const Text(
+            'This transaction sends its change to an address this wallet cannot spend '
+            'from. That is what a tampered transaction looks like. Signing will be '
+            'refused.',
+            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+          ),
+        ],
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => setState(() {
+                  _step = OfflineSignStep.importUnsignedTx;
+                  _destinations = const [];
+                  _pendingUnsignedHex = null;
+                }),
+                child: const Text('Cancel'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: foreignChange || _pendingUnsignedHex == null
+                    ? null
+                    : () => _signOffline(_pendingUnsignedHex!),
+                child: const Text('Sign'),
               ),
             ),
           ],

@@ -281,16 +281,29 @@ async function sendSignalAndWait(page, signalFnName, requestJson, responseTypeNa
   );
 }
 
-/** Navigate to a fresh extension page and wait for WASM initialization. */
+/**
+ * Navigate to a fresh extension page and wait for WASM initialization.
+ *
+ * The navigation timeout is explicit because puppeteer's 30s default was a race, not
+ * headroom. After the oversized-history test puts four wallets of 3,200 outputs each into
+ * IndexedDB, this reload was measured at 2.7s, 27.6s, and over 30s on different runs of
+ * the same code — so whether the suite passed came down to timing rather than behaviour.
+ * The spread is the interesting part and is not explained here; a reload that sometimes
+ * takes ten times as long as others is worth profiling on its own.
+ */
+const PAGE_LOAD_BUDGET_MS = Number(process.env.E2E_PAGE_LOAD_TIMEOUT_MS || 90000);
+
 async function reloadExtensionPage(browser, extId) {
   const newPage = await browser.newPage();
-  await newPage.goto(`chrome-extension://${extId}/index.html`);
-  await newPage.waitForSelector('flt-glass-pane', { timeout: 15000 });
+  await newPage.goto(`chrome-extension://${extId}/index.html`, {
+    timeout: PAGE_LOAD_BUDGET_MS,
+  });
+  await newPage.waitForSelector('flt-glass-pane', { timeout: PAGE_LOAD_BUDGET_MS });
   await newPage.waitForFunction(
     () =>
       !!window.wasmBindings &&
       typeof window.wasmBindings.register_rust_signal_callback === 'function',
-    { timeout: 15000 }
+    { timeout: PAGE_LOAD_BUDGET_MS }
   );
   return newPage;
 }

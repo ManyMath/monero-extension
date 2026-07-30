@@ -41,6 +41,30 @@ class ScanState extends ChangeNotifier {
   ReorgDetectedResponse? reorgInfo;
   List<DoubleSpendConflict>? doubleSpendConflicts;
 
+  /// The wallet a single-wallet scan is running for, when that is known.
+  ///
+  /// A `BlockScanResponse` carries no wallet identity, and the handler credits it to
+  /// whichever wallet is active when it arrives. `MultiWalletScanResponse` — the sibling
+  /// for the same job — routes each result by the address it was scanned for; this path
+  /// had nothing, and it is the one the app runs whenever a single wallet is open. Since
+  /// switching or loading a wallet does not stop a running scan, blocks scanned for one
+  /// wallet were merged into another: its outputs, its transactions, and the chain
+  /// position it then saves and reports as synced.
+  String? _singleScanWalletId;
+  String? _mempoolScanWalletId;
+
+  /// Whether a scan result for [scanWalletId] still belongs to the wallet in front of us.
+  ///
+  /// Only positive knowledge counts. A scan of a seed typed into the field has no wallet
+  /// to name, and a wallet can be opened after such a scan starts; refusing those would
+  /// discard results the app has always kept, so an unknown id on either side defers
+  /// rather than drops.
+  bool _resultIsForTheActiveWallet(String? scanWalletId) {
+    final activeId = _walletState.lifecycle.activeWalletId;
+    if (scanWalletId == null || activeId == null) return true;
+    return scanWalletId == activeId;
+  }
+
   int get currentHeight => daemonHeight ?? scanResult?.blockHeight ?? 0;
   int get continuousScanCurrentHeight =>
       _walletState.continuousScanCurrentHeight;
@@ -105,6 +129,13 @@ class ScanState extends ChangeNotifier {
   // Signal handlers
   void _handleBlockScan(BlockScanResponse msg) {
     if (_walletState.isChangingSeed) return;
+    if (!_resultIsForTheActiveWallet(_singleScanWalletId)) {
+      // Scanned for a wallet that is no longer the one on screen. Dropping loses
+      // nothing: that wallet's own scan height was never advanced, so it rescans these
+      // blocks when it is next in front.
+      isScanning = false;
+      return;
+    }
 
     isScanning = false;
     if (msg.success) {
@@ -204,6 +235,10 @@ class ScanState extends ChangeNotifier {
 
   void _handleMempoolScan(MempoolScanResponse msg) {
     if (_walletState.isChangingSeed) return;
+    if (!_resultIsForTheActiveWallet(_mempoolScanWalletId)) {
+      isScanningMempool = false;
+      return;
+    }
 
     isScanningMempool = false;
     if (msg.success) {
@@ -411,6 +446,10 @@ class ScanState extends ChangeNotifier {
     isScanning = true;
     scanResult = null;
     scanError = null;
+    // The one-shot scan reports through the same unidentified BlockScanResponse, so it
+    // needs the same binding — and it has to be set on every scan, or a stale id from an
+    // earlier wallet would reject this one's result.
+    _singleScanWalletId = _walletState.lifecycle.activeWalletId;
     notifyListeners();
 
     WalletScanService.scanBlock(
@@ -467,6 +506,12 @@ class ScanState extends ChangeNotifier {
       for (var wallet in walletsToScan) {
         wallet.isScanning = true;
       }
+      // Multi-wallet results route by address and need no id here; a scan of a bare seed
+      // has no wallet to name. Only the single-wallet case can be bound, and it is the
+      // one whose results arrive with nothing to identify them.
+      _singleScanWalletId = walletsToScan.length == 1
+          ? walletsToScan.single.walletId
+          : null;
       notifyListeners();
 
       final result = walletsToScan.isEmpty ? KeyParser.parse(seed) : null;
@@ -521,6 +566,7 @@ class ScanState extends ChangeNotifier {
     }
 
     isScanningMempool = true;
+    _mempoolScanWalletId = _walletState.lifecycle.activeWalletId;
     scanError = null;
     notifyListeners();
 

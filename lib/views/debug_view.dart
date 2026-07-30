@@ -133,6 +133,8 @@ class _DebugViewState extends State<DebugView> {
       context,
       isViewOnly: false,
       seed: ws.seedController.text.trim(),
+      passphrase: ws.passphrase,
+      bip39AccountIndex: ws.bip39AccountIndex,
       network: ws.network,
       viewKeyHex: ws.activeWallet?.importedViewSecretKey,
       spendSecretKeyHex: ws.activeWallet?.importedSpendSecretKey,

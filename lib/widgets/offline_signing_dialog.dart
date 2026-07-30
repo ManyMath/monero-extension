@@ -29,6 +29,12 @@ class OfflineSigningDialog extends StatefulWidget {
   final int fee;
   final bool isViewOnly;
   final String? seed;
+
+  /// The wallet's seed offset passphrase. A passphrase picks a different wallet out of
+  /// the same mnemonic, so signing without it signs as somebody else — it must travel
+  /// with the seed, not be assumed empty.
+  final String passphrase;
+  final int bip39AccountIndex;
   final String? network;
   final String? viewKeyHex;
   final String? spendSecretKeyHex;
@@ -42,6 +48,8 @@ class OfflineSigningDialog extends StatefulWidget {
     this.fee = 0,
     required this.isViewOnly,
     this.seed,
+    this.passphrase = '',
+    this.bip39AccountIndex = 0,
     this.network,
     this.viewKeyHex,
     this.spendSecretKeyHex,
@@ -56,6 +64,8 @@ class OfflineSigningDialog extends StatefulWidget {
     int fee = 0,
     required bool isViewOnly,
     String? seed,
+    String passphrase = '',
+    int bip39AccountIndex = 0,
     String? network,
     String? viewKeyHex,
     String? spendSecretKeyHex,
@@ -71,6 +81,8 @@ class OfflineSigningDialog extends StatefulWidget {
         fee: fee,
         isViewOnly: isViewOnly,
         seed: seed,
+        passphrase: passphrase,
+        bip39AccountIndex: bip39AccountIndex,
         network: network,
         viewKeyHex: viewKeyHex,
         spendSecretKeyHex: spendSecretKeyHex,
@@ -177,8 +189,8 @@ class _OfflineSigningDialogState extends State<OfflineSigningDialog> {
       seed: widget.seed!,
       unsignedTxHex: unsignedHex,
       network: widget.network!,
-      passphrase: '',
-      bip39AccountIndex: 0,
+      passphrase: widget.passphrase,
+      bip39AccountIndex: widget.bip39AccountIndex,
       spendSecretKeyHex: widget.spendSecretKeyHex,
       viewSecretKeyHex: widget.viewSecretKeyHex,
     ).sendSignalToRust();
@@ -213,8 +225,8 @@ class _OfflineSigningDialogState extends State<OfflineSigningDialog> {
       seed: widget.seed!,
       unsignedTxHex: unsignedHex,
       network: widget.network!,
-      passphrase: '',
-      bip39AccountIndex: 0,
+      passphrase: widget.passphrase,
+      bip39AccountIndex: widget.bip39AccountIndex,
       spendSecretKeyHex: widget.spendSecretKeyHex,
       viewSecretKeyHex: widget.viewSecretKeyHex,
     ).sendSignalToRust();

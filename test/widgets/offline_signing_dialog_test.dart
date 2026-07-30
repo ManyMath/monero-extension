@@ -395,4 +395,55 @@ void main() {
       reason: 'the dialog must not sign a transaction whose change is redirected',
     );
   });
+
+  testWidgets('carries the wallet passphrase into preview and signing', (
+    tester,
+  ) async {
+    // A seed offset passphrase picks a different wallet out of the same mnemonic, so a
+    // request that leaves it empty derives the wrong wallet: the preview disowns the
+    // wallet's own change and the signer then refuses it. The dialog used to hard-code
+    // '' at both call sites, which meant the field existed on the wire and nothing ever
+    // filled it.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => ElevatedButton(
+            onPressed: () async {
+              await OfflineSigningDialog.show(
+                context,
+                isViewOnly: false,
+                seed: 'cold seed words',
+                passphrase: 'hunter2',
+                bip39AccountIndex: 3,
+                network: 'mainnet',
+              );
+            },
+            child: const Text('Open'),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'abcdef');
+    await tester.tap(find.text('From Text'));
+    await tester.pump();
+
+    final preview = sender.sent.last;
+    expect(preview.name, 'send_preview_unsigned_transaction_request');
+    expect(preview.data['passphrase'], 'hunter2');
+    expect(preview.data['bip39_account_index'], 3);
+
+    await confirmDestinations(tester, sender);
+
+    final signing = sender.sent.last;
+    expect(signing.name, 'send_sign_unsigned_transaction_request');
+    expect(
+      signing.data['passphrase'],
+      'hunter2',
+      reason: 'the signer must derive the same wallet the preview showed',
+    );
+    expect(signing.data['bip39_account_index'], 3);
+  });
 }

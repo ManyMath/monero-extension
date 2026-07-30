@@ -371,6 +371,8 @@ class TransactionState extends ChangeNotifier {
       nodeUrl: validation.nodeUrl!,
       selectedOutputs: validation.selectedOutputs,
       subtractFee: subtractFee,
+      passphrase: _walletState.passphrase,
+      bip39AccountIndex: _walletState.bip39AccountIndex,
     );
   }
 

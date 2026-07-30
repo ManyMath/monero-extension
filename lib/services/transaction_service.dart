@@ -110,8 +110,11 @@ class TransactionService {
     required String nodeUrl,
     List<String>? selectedOutputs,
     bool subtractFee = false,
-    String passphrase = '',
-    int bip39AccountIndex = 0,
+    // Required, not defaulted: a passphrase picks a different wallet out of the same
+    // mnemonic, so a caller that forgets one signs as somebody else. A default of '' let
+    // the offline signer and this path silently derive the wrong wallet.
+    required String passphrase,
+    required int bip39AccountIndex,
   }) {
     CreateTransactionRequest(
       nodeUrl: nodeUrl,
@@ -187,8 +190,8 @@ class TransactionService {
     required String destinationAddress,
     required String nodeUrl,
     List<String>? selectedOutputs,
-    String passphrase = '',
-    int bip39AccountIndex = 0,
+    required String passphrase,
+    required int bip39AccountIndex,
   }) {
     SweepAllRequest(
       nodeUrl: nodeUrl,

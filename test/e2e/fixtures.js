@@ -315,6 +315,7 @@ module.exports = {
   UNSIGNED_TX_HEX,
   sendSignalAndWait,
   reloadExtensionPage,
+  PAGE_LOAD_BUDGET_MS,
   probeNode,
   NODE_AVAILABLE,
   NODE_URL,

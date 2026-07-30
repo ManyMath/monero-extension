@@ -1,6 +1,11 @@
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
+// Not a private copy. This file had its own `reloadExtensionPage`, which left `goto` on
+// puppeteer's 30s default and then *slept three seconds* in place of waiting for the
+// bindings — so the reload that fixtures.js was hardened against was, in the one file
+// where it decides five tests, still the unhardened one.
+const { reloadExtensionPage, PAGE_LOAD_BUDGET_MS } = require('./fixtures');
 
 /** Send `signalFnName` and resolve when `responseTypeName` is received. */
 async function sendSignalAndWait(page, signalFnName, requestJson, responseTypeName, timeoutMs = 10000) {
@@ -28,14 +33,6 @@ async function sendSignalAndWait(page, signalFnName, requestJson, responseTypeNa
   );
 }
 
-/** Navigate to a fresh extension page and wait for WASM initialization. */
-async function reloadExtensionPage(browser, extId) {
-  const newPage = await browser.newPage();
-  await newPage.goto(`chrome-extension://${extId}/index.html`);
-  await newPage.waitForSelector('flt-glass-pane', { timeout: 15000 });
-  await new Promise(resolve => setTimeout(resolve, 3000));
-  return newPage;
-}
 
 describe('Core Monero WASM', () => {
   let browser;
@@ -244,7 +241,11 @@ describe('Core Monero WASM', () => {
         window.wasmBindings.TestApi.test_wasm()
       );
       expect(afterReload).toBe('WASM OK');
-    }, 30000);
+      // The test's own ceiling has to sit *above* the page-load budget, or the budget
+      // decides nothing: this reload was measured at 3.3s and at over 30s on identical
+      // code within one session, and at 30000 the jest timeout fired first either way.
+      // The spread itself is still unexplained — see SECURITY-REVIEW.md.
+    }, PAGE_LOAD_BUDGET_MS + 30000);
 
     it('derives same address after extension reload', async () => {
       const address = await extPage.evaluate(

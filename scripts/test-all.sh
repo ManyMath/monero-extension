@@ -56,6 +56,19 @@ if ! (cd "$ROOT/native/monero_wasm" && cargo check --target wasm32-unknown-unkno
     record_failure "monero_wasm wasm32"
 fi
 
+step "monero_wasm unit and integration tests"
+# 94 of them, and until now no tier ran a single one — the wasm32 step above is a `cargo
+# check`, which compiles the library and never builds a test target, so every #[test] in
+# this crate was invisible. That includes actors/wallet_test.rs, the only tests anywhere
+# that drive the actors the extension is built out of.
+#
+# They run on the *host*, not on wasm32: they are #[tokio::test]s over the actor messages
+# and the signal types, none of which need a browser. The wasm32 tier stays as it is — it
+# is what says the crate still builds for the target it ships to.
+if ! (cd "$ROOT/native/monero_wasm" && cargo test --quiet); then
+    record_failure "monero_wasm tests"
+fi
+
 step "signal generator's own tests"
 # codegen has its own [workspace], so the root workspace's --workspace never reaches these.
 # They pin the checks the generator makes on signals/mod.rs — chiefly that Rust cannot skip

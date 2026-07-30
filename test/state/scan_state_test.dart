@@ -65,6 +65,20 @@ BlockScanResponse _scanned(String txHash, int height) => BlockScanResponse(
   spentKeyImageTxHashes: const [],
 );
 
+/// Put a wallet at a scan height with an output there, without running a scan for it —
+/// a scan started while it is the only open wallet would rebind `_singleScanWalletId`
+/// and stop being the case under test.
+void _seedWallet(
+  WalletState walletState,
+  String walletId,
+  String txHash,
+  int height,
+) {
+  final wallet = walletState.lifecycle.openWallets[walletId]!;
+  wallet.outputs.add(_output(txHash, height));
+  wallet.currentHeight = height;
+}
+
 void main() {
   late _Sender sender;
 
@@ -175,6 +189,143 @@ void main() {
       walletState.lifecycle.openWallets['wallet_a']!.outputs
           .map((o) => o.txHash),
       ['scanned_before_open'],
+    );
+  });
+
+  // The reorg is the other outcome of the same scan, and it was gated on nothing at all.
+  // `handleReorgDetected` rewinds `activeWallet.currentHeight` to `splitHeight - 1` and
+  // rebuilds its transaction list — so a fork found while scanning a wallet at height
+  // 700000 moved a wallet sitting at 200 *forward* past every block it had yet to scan,
+  // and it then reports itself synced over outputs it never looked for.
+  test('a reorg found scanning another wallet is not applied to the active one', () {
+    final hub = SignalHub();
+    final walletState = _walletState(hub);
+    addTearDown(walletState.dispose);
+    final scanState = ScanState(
+      walletState: walletState,
+      pollingService: WalletPollingService(),
+      signalHub: hub,
+    );
+    addTearDown(scanState.dispose);
+
+    // A scan is running for wallet A, far up the chain.
+    walletState.openWallet('wallet_a', 'seed a words', 'stagenet', 'addr_a');
+    walletState.nodeUrlController.text = 'http://127.0.0.1:18081';
+    walletState.blockHeightController.text = '100';
+    scanState.startContinuousScan();
+
+    // The user opens wallet B, which has scanned as far as block 200 and holds an output
+    // there. A's scan keeps running; nothing stops it.
+    walletState.openWallet('wallet_b', 'seed b words', 'stagenet', 'addr_b');
+    _seedWallet(walletState, 'wallet_b', 'b_own_output', 200);
+    expect(walletState.activeWalletId, 'wallet_b');
+
+    // A's scan reports a fork at 700000 — a height B has never been anywhere near.
+
+    hub.onReorgDetected!(
+      ReorgDetectedResponse(
+        splitHeight: 700000,
+        blocksDetached: 3,
+        outputsRemoved: 0,
+        outputsUnspent: 0,
+        removedKeyImages: const [],
+        unspentKeyImages: const [],
+      ),
+    );
+
+    expect(
+      walletState.lifecycle.openWallets['wallet_b']!.currentHeight,
+      200,
+      reason: 'wallet B was moved to a fork point found while scanning wallet A',
+    );
+  });
+
+  // The other half of the same signal, and the destructive one. Before this was bound,
+  // the Rust `HandleReorg` rolled back whatever wallet the actor then held, so the key
+  // images it reports removed are the *active* wallet's own — which Dart then deletes.
+  test("a reorg found scanning another wallet does not delete the active one's outputs", () {
+    final hub = SignalHub();
+    final walletState = _walletState(hub);
+    addTearDown(walletState.dispose);
+    final scanState = ScanState(
+      walletState: walletState,
+      pollingService: WalletPollingService(),
+      signalHub: hub,
+    );
+    addTearDown(scanState.dispose);
+
+    walletState.openWallet('wallet_a', 'seed a words', 'stagenet', 'addr_a');
+    walletState.nodeUrlController.text = 'http://127.0.0.1:18081';
+    walletState.blockHeightController.text = '100';
+    scanState.startContinuousScan();
+
+    walletState.openWallet('wallet_b', 'seed b words', 'stagenet', 'addr_b');
+    _seedWallet(walletState, 'wallet_b', 'b_own_output', 200);
+
+    hub.onReorgDetected!(
+      ReorgDetectedResponse(
+        splitHeight: 150,
+        blocksDetached: 51,
+        outputsRemoved: 1,
+        outputsUnspent: 0,
+        removedKeyImages: const ['ki_b_own_output'],
+        unspentKeyImages: const [],
+      ),
+    );
+
+    expect(
+      walletState.lifecycle.openWallets['wallet_b']!.outputs
+          .map((o) => o.txHash),
+      ['b_own_output'],
+      reason: "wallet B's own output was deleted by another wallet's reorg",
+    );
+    expect(
+      walletState.lifecycle.openWallets['wallet_b']!.currentHeight,
+      200,
+      reason: 'wallet B was rewound to a fork point found while scanning wallet A',
+    );
+  });
+
+  // The negative control. Refusing every reorg would leave a wallet on an orphaned chain
+  // crediting itself with outputs that no longer exist, and would still pass the test
+  // above.
+  test('a reorg found scanning the active wallet is applied to it', () {
+    final hub = SignalHub();
+    final walletState = _walletState(hub);
+    addTearDown(walletState.dispose);
+    final scanState = ScanState(
+      walletState: walletState,
+      pollingService: WalletPollingService(),
+      signalHub: hub,
+    );
+    addTearDown(scanState.dispose);
+
+    walletState.openWallet('wallet_a', 'seed a words', 'stagenet', 'addr_a');
+    walletState.nodeUrlController.text = 'http://127.0.0.1:18081';
+    walletState.blockHeightController.text = '100';
+    scanState.startContinuousScan();
+    hub.onBlockScan!(_scanned('orphaned', 500));
+
+    hub.onReorgDetected!(
+      ReorgDetectedResponse(
+        splitHeight: 400,
+        blocksDetached: 101,
+        outputsRemoved: 1,
+        outputsUnspent: 0,
+        removedKeyImages: const ['ki_orphaned'],
+        unspentKeyImages: const [],
+      ),
+    );
+
+    expect(
+      walletState.lifecycle.openWallets['wallet_a']!.outputs,
+      isEmpty,
+      reason: 'the orphaned output must be dropped from the wallet that scanned it',
+    );
+    expect(
+      walletState.lifecycle.openWallets['wallet_a']!.currentHeight,
+      399,
+      reason: 'the wallet that scanned the fork must rewind to it',
     );
   });
 }

@@ -311,6 +311,14 @@ class ScanState extends ChangeNotifier {
   }
 
   void _handleReorgDetected(ReorgDetectedResponse msg) {
+    if (_walletState.isChangingSeed) return;
+    if (!_resultIsForTheActiveWallet(_singleScanWalletId)) {
+      // The other outcome of the same scan as `_handleBlockScan`, and the destructive
+      // one: it rewinds the wallet to the fork and deletes the outputs the reorg
+      // removed. Applied to a wallet that never saw that fork, a split height above its
+      // own scan position moves it *forward* past blocks it has yet to look at.
+      return;
+    }
     reorgInfo = msg;
     _walletState.lifecycle.handleReorgDetected(
       splitHeight: msg.splitHeight,

@@ -111,7 +111,11 @@ describe('Core Monero WASM', () => {
     const words = seed.split(' ');
     expect(words).toHaveLength(25);
     for (const word of words) {
-      expect(word).toMatch(/^[a-z]{3,10}$/);
+      // 12, not 10: monero's English list holds 'demonstrate' and 'verification', and a
+      // seed is 25 draws from 1626 words, so the old bound failed about one run in 33 on
+      // a seed that was perfectly valid. A random input needs its assertion checked
+      // against the whole domain, not against the draws that happened to come up.
+      expect(word).toMatch(/^[a-z]{3,12}$/);
     }
   });
 

@@ -148,11 +148,16 @@ describe('Error & Edge Cases', () => {
     const saveResponse = await sendSignalAndWait(
       extPage,
       'send_save_wallet_data_request',
-      JSON.stringify({ password: 'correct-password', wallet_data_json: walletJson }),
+      JSON.stringify({
+        request_id: 'e2e-save-1',
+        password: 'correct-password',
+        wallet_data_json: walletJson,
+      }),
       'WalletDataSavedResponse',
       10000
     );
 
+    expect(saveResponse.request_id).toBe('e2e-save-1');
     expect(saveResponse.success).toBe(true);
     expect(saveResponse.encrypted_data).toBeTruthy();
 
@@ -160,6 +165,7 @@ describe('Error & Edge Cases', () => {
       extPage,
       'send_load_wallet_data_request',
       JSON.stringify({
+        request_id: 'e2e-load-wrong-password',
         password: 'wrong-password',
         encrypted_data: saveResponse.encrypted_data,
       }),
@@ -167,6 +173,7 @@ describe('Error & Edge Cases', () => {
       10000
     );
 
+    expect(loadResponse.request_id).toBe('e2e-load-wrong-password');
     expect(loadResponse.success).toBe(false);
     expect(loadResponse.error).toMatch(/decrypt|password|invalid/i);
     expect(loadResponse.error_code).toBeTruthy();
@@ -177,6 +184,7 @@ describe('Error & Edge Cases', () => {
       extPage,
       'send_load_wallet_data_request',
       JSON.stringify({
+        request_id: 'e2e-load-corrupt',
         password: 'irrelevant',
         encrypted_data: 'not-valid-base64!!!',
       }),

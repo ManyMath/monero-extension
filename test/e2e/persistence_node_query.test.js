@@ -253,11 +253,18 @@ describe('Persistence & Node-Query Tests', () => {
       const saveResp = await sendSignalAndWait(
         extPage,
         'send_save_wallet_data_request',
-        JSON.stringify({ password: '', wallet_data_json: walletJson }),
+        JSON.stringify({
+          request_id: 'e2e-roundtrip-save',
+          password: '',
+          wallet_data_json: walletJson,
+        }),
         'WalletDataSavedResponse',
         10000
       );
 
+      // The response is correlated to its request, which is what stops a save and an
+      // auto-save — both answered by this type — satisfying each other's caller.
+      expect(saveResp.request_id).toBe('e2e-roundtrip-save');
       expect(saveResp.success).toBe(true);
       expect(saveResp.encrypted_data).toBeTruthy();
       expect(saveResp.encrypted_data.length).toBeGreaterThan(0);
@@ -265,11 +272,16 @@ describe('Persistence & Node-Query Tests', () => {
       const loadResp = await sendSignalAndWait(
         extPage,
         'send_load_wallet_data_request',
-        JSON.stringify({ password: '', encrypted_data: saveResp.encrypted_data }),
+        JSON.stringify({
+          request_id: 'e2e-roundtrip-load',
+          password: '',
+          encrypted_data: saveResp.encrypted_data,
+        }),
         'WalletDataLoadedResponse',
         10000
       );
 
+      expect(loadResp.request_id).toBe('e2e-roundtrip-load');
       expect(loadResp.success).toBe(true);
       expect(JSON.parse(loadResp.wallet_data_json)).toEqual(JSON.parse(walletJson));
     }, 30000);
@@ -279,11 +291,12 @@ describe('Persistence & Node-Query Tests', () => {
       const deriveResp = await sendSignalAndWait(
         extPage,
         'send_derive_encryption_key_request',
-        JSON.stringify({ password: '' }),
+        JSON.stringify({ request_id: 'e2e-derive-key', password: '' }),
         'EncryptionKeyDerivedResponse',
         10000
       );
 
+      expect(deriveResp.request_id).toBe('e2e-derive-key');
       expect(deriveResp.success).toBe(true);
       expect(deriveResp.key_hex).toMatch(/^[0-9a-f]{64}$/);  // 32 bytes
       expect(deriveResp.salt_hex).toMatch(/^[0-9a-f]{32}$/); // 16 bytes
@@ -293,7 +306,7 @@ describe('Persistence & Node-Query Tests', () => {
       const deriveResp = await sendSignalAndWait(
         extPage,
         'send_derive_encryption_key_request',
-        JSON.stringify({ password: '' }),
+        JSON.stringify({ request_id: 'e2e-derive-key', password: '' }),
         'EncryptionKeyDerivedResponse',
         10000
       );
@@ -303,6 +316,7 @@ describe('Persistence & Node-Query Tests', () => {
         extPage,
         'send_save_with_derived_key_request',
         JSON.stringify({
+          request_id: 'e2e-save-with-derived-key',
           key_hex: deriveResp.key_hex,
           salt_hex: deriveResp.salt_hex,
           wallet_data_json: walletJson,
@@ -311,6 +325,7 @@ describe('Persistence & Node-Query Tests', () => {
         10000
       );
 
+      expect(saveResp.request_id).toBe('e2e-save-with-derived-key');
       expect(saveResp.success).toBe(true);
       expect(saveResp.encrypted_data).toBeTruthy();
       expect(saveResp.encrypted_data.length).toBeGreaterThan(0);

@@ -178,12 +178,13 @@ class WalletPersistenceService {
     }
   }
 
+  /// The write-ahead log's keys are prefixed (see [WriteAheadKeys]), so they do
+  /// not begin `monero_wallet_` and no suffix filter is needed here. The suffix
+  /// filter this replaces also hid every wallet a user had named `x_staging`.
   List<String> listWallets() {
     final walletIds = <String>[];
     for (final key in _requireSyncStorage().keys) {
-      if (key.startsWith('monero_wallet_') &&
-          !key.endsWith('_staging') &&
-          !key.endsWith('_wip')) {
+      if (key.startsWith('monero_wallet_')) {
         walletIds.add(key.substring('monero_wallet_'.length));
       }
     }
@@ -194,9 +195,7 @@ class WalletPersistenceService {
   Future<List<String>> listWalletsAsync() async {
     final walletIds = <String>[];
     for (final key in await _storage.getKeys()) {
-      if (key.startsWith('monero_wallet_') &&
-          !key.endsWith('_staging') &&
-          !key.endsWith('_wip')) {
+      if (key.startsWith('monero_wallet_')) {
         walletIds.add(key.substring('monero_wallet_'.length));
       }
     }

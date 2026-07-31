@@ -21,17 +21,17 @@ class InMemoryStorageBackend implements StorageBackend {
 
   @override
   void atomicSet(String key, String value) {
-    _data['${key}_wip'] = '1';
-    _data['${key}_staging'] = value;
+    _data[WriteAheadKeys.tombstone(key)] = '1';
+    _data[WriteAheadKeys.staging(key)] = value;
     _data[key] = value;
-    _data.remove('${key}_wip');
-    _data.remove('${key}_staging');
+    _data.remove(WriteAheadKeys.tombstone(key));
+    _data.remove(WriteAheadKeys.staging(key));
   }
 
   @override
   void maybeRecover(String key) {
-    final tombstoneKey = '${key}_wip';
-    final stagingKey = '${key}_staging';
+    final tombstoneKey = WriteAheadKeys.tombstone(key);
+    final stagingKey = WriteAheadKeys.staging(key);
     if (!_data.containsKey(tombstoneKey)) return;
     final staging = _data[stagingKey];
     if (staging != null) {
@@ -66,17 +66,17 @@ class AsyncInMemoryStorageBackend implements AsyncStorageBackend {
 
   @override
   Future<void> atomicSet(String key, String value) async {
-    _data['${key}_wip'] = '1';
-    _data['${key}_staging'] = value;
+    _data[WriteAheadKeys.tombstone(key)] = '1';
+    _data[WriteAheadKeys.staging(key)] = value;
     _data[key] = value;
-    _data.remove('${key}_wip');
-    _data.remove('${key}_staging');
+    _data.remove(WriteAheadKeys.tombstone(key));
+    _data.remove(WriteAheadKeys.staging(key));
   }
 
   @override
   Future<void> maybeRecover(String key) async {
-    final tombstoneKey = '${key}_wip';
-    final stagingKey = '${key}_staging';
+    final tombstoneKey = WriteAheadKeys.tombstone(key);
+    final stagingKey = WriteAheadKeys.staging(key);
     if (!_data.containsKey(tombstoneKey)) return;
     final staging = _data[stagingKey];
     if (staging != null) {

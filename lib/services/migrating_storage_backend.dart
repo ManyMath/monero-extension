@@ -64,7 +64,7 @@ class MigratingStorageBackend implements AsyncStorageBackend {
 
   void _removeLegacyKeyFamily(String key) {
     legacy.remove(key);
-    legacy.remove('${key}_staging');
-    legacy.remove('${key}_wip');
+    legacy.remove(WriteAheadKeys.staging(key));
+    legacy.remove(WriteAheadKeys.tombstone(key));
   }
 }

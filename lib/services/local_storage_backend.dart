@@ -23,12 +23,11 @@ class LocalStorageBackend implements StorageBackend {
 
   /// Write-ahead atomic set: tombstone -> staging -> live -> clear.
   ///
-  /// Staging key: `{key}_staging`, tombstone key: `{key}_wip`.
-  /// Recoverable at any step via [maybeRecover].
+  /// Keys come from [WriteAheadKeys]; recoverable at any step via [maybeRecover].
   @override
   void atomicSet(String key, String value) {
-    final stagingKey = '${key}_staging';
-    final tombstoneKey = '${key}_wip';
+    final stagingKey = WriteAheadKeys.staging(key);
+    final tombstoneKey = WriteAheadKeys.tombstone(key);
 
     html.window.localStorage[tombstoneKey] = '1';
     html.window.localStorage[stagingKey] = value;
@@ -42,8 +41,8 @@ class LocalStorageBackend implements StorageBackend {
   /// No-op if no tombstone is present.
   @override
   void maybeRecover(String key) {
-    final tombstoneKey = '${key}_wip';
-    final stagingKey = '${key}_staging';
+    final tombstoneKey = WriteAheadKeys.tombstone(key);
+    final stagingKey = WriteAheadKeys.staging(key);
 
     if (!html.window.localStorage.containsKey(tombstoneKey)) return;
 

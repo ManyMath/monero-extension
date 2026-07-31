@@ -3,6 +3,7 @@ import 'package:monero_extension/models/wallet_transaction.dart';
 import 'package:monero_extension/services/migrating_storage_backend.dart';
 import 'package:monero_extension/services/tiered_storage_backend.dart';
 import 'package:monero_extension/services/wallet_persistence_service.dart';
+import 'package:monero_extension/services/wallet_storage_service.dart';
 import '../test_helpers.dart';
 import 'test_backends.dart';
 
@@ -84,6 +85,135 @@ void main() {
       expect(() => svc.clear('async-wallet'), throwsStateError);
       expect(() => svc.getRawData('async-wallet'), throwsStateError);
       expect(() => svc.setRawData('async-wallet', 'data'), throwsStateError);
+    });
+  });
+
+  group('WalletPersistenceService - wallet ids that look like WAL keys', () {
+    // Wallet ids admit underscores (`^[a-zA-Z0-9_-]+$`, and the save dialog's own
+    // hint is `my_wallet`), so `savings_staging` is a name a user can pick. The
+    // write-ahead log used to derive its keys by *suffixing* the wallet's key, so
+    // those keys were wallet keys too.
+    Future<void> saveWallet(
+      WalletPersistenceService svc,
+      String walletId,
+      String seed,
+    ) async {
+      final result = await svc.save(
+        walletId: walletId,
+        password: 'pass123',
+        seed: seed,
+        network: 'stagenet',
+        address: null,
+        nodeUrl: 'http://node:38081',
+        outputs: [],
+        transactions: [],
+        continuousScanCurrentHeight: 0,
+        selectedOutputs: {},
+        accounts: [0],
+        activeAccount: 0,
+        scanningAccounts: {0},
+      );
+      expect(result.success, true, reason: result.error);
+    }
+
+    WalletPersistenceService asyncService(AsyncStorageBackend storage) =>
+        WalletPersistenceService.async(
+          storage: storage,
+          crypto: IdentityCryptoBackend(),
+        );
+
+    test('saving a wallet does not delete the sibling named `_staging`', () async {
+      final svc = asyncService(AsyncInMemoryStorageBackend());
+      await saveWallet(svc, 'savings_staging', 'staging seed phrase');
+
+      await saveWallet(svc, 'savings', 'savings seed phrase');
+
+      final loaded = await svc.load(
+        walletId: 'savings_staging',
+        password: 'pass123',
+      );
+      expect(loaded.success, true, reason: loaded.error);
+      expect(loaded.seed, 'staging seed phrase');
+    });
+
+    test('saving a wallet does not delete the sibling named `_wip`', () async {
+      final svc = asyncService(AsyncInMemoryStorageBackend());
+      await saveWallet(svc, 'savings_wip', 'wip seed phrase');
+
+      await saveWallet(svc, 'savings', 'savings seed phrase');
+
+      final loaded = await svc.load(
+        walletId: 'savings_wip',
+        password: 'pass123',
+      );
+      expect(loaded.success, true, reason: loaded.error);
+      expect(loaded.seed, 'wip seed phrase');
+    });
+
+    test('loading a wallet does not adopt a sibling wallet\'s data', () async {
+      // `main` is saved first so the siblings are not destroyed on the way in;
+      // what this pins is the *read* path, where `maybeRecover` mistook wallet
+      // `main_wip` for its own tombstone and wallet `main_staging` for its own
+      // staged value.
+      final svc = asyncService(AsyncInMemoryStorageBackend());
+      await saveWallet(svc, 'main', 'main seed phrase');
+      await saveWallet(svc, 'main_wip', 'wip seed phrase');
+      await saveWallet(svc, 'main_staging', 'staging seed phrase');
+
+      final loaded = await svc.load(walletId: 'main', password: 'pass123');
+
+      expect(loaded.success, true, reason: loaded.error);
+      expect(loaded.seed, 'main seed phrase');
+      expect(
+        (await svc.load(walletId: 'main_staging', password: 'pass123')).seed,
+        'staging seed phrase',
+      );
+      expect(
+        (await svc.load(walletId: 'main_wip', password: 'pass123')).seed,
+        'wip seed phrase',
+      );
+    });
+
+    test('a wallet whose id ends in `_staging` is listed', () async {
+      final svc = asyncService(AsyncInMemoryStorageBackend());
+      await saveWallet(svc, 'savings_staging', 'staging seed phrase');
+      await saveWallet(svc, 'savings_wip', 'wip seed phrase');
+
+      expect(await svc.listWalletsAsync(), ['savings_staging', 'savings_wip']);
+    });
+
+    test('control: an interrupted atomic write is still recovered', () async {
+      final storage = AsyncInMemoryStorageBackend();
+      await storage.set(WriteAheadKeys.tombstone('monero_wallet_crashed'), '1');
+      await storage.set(
+        WriteAheadKeys.staging('monero_wallet_crashed'),
+        'staged-blob',
+      );
+
+      await storage.maybeRecover('monero_wallet_crashed');
+
+      expect(await storage.get('monero_wallet_crashed'), 'staged-blob');
+      expect(
+        await storage.containsKey(
+          WriteAheadKeys.tombstone('monero_wallet_crashed'),
+        ),
+        false,
+      );
+      expect(
+        await storage.containsKey(
+          WriteAheadKeys.staging('monero_wallet_crashed'),
+        ),
+        false,
+      );
+    });
+
+    test('control: a completed atomic write leaves no residue', () async {
+      final storage = AsyncInMemoryStorageBackend();
+
+      await storage.atomicSet('monero_wallet_clean', 'blob');
+
+      expect(await storage.get('monero_wallet_clean'), 'blob');
+      expect(await storage.getKeys(), ['monero_wallet_clean']);
     });
   });
 
@@ -172,13 +302,19 @@ void main() {
       () async {
         final primary = AsyncInMemoryStorageBackend()
           ..set(
-            'monero_wallet_recover_large_staging',
+            WriteAheadKeys.staging('monero_wallet_recover_large'),
             '${TieredStorageBackend.markerPrefix}tiered:monero_wallet_recover_large',
           )
-          ..set('monero_wallet_recover_large_wip', '1');
+          ..set(WriteAheadKeys.tombstone('monero_wallet_recover_large'), '1');
         final secondary = AsyncInMemoryStorageBackend()
-          ..set('tiered:monero_wallet_recover_large_staging', 'large-payload')
-          ..set('tiered:monero_wallet_recover_large_wip', '1');
+          ..set(
+            WriteAheadKeys.staging('tiered:monero_wallet_recover_large'),
+            'large-payload',
+          )
+          ..set(
+            WriteAheadKeys.tombstone('tiered:monero_wallet_recover_large'),
+            '1',
+          );
         final storage = TieredStorageBackend(
           primary: primary,
           secondary: secondary,
@@ -191,9 +327,16 @@ void main() {
           await storage.get('monero_wallet_recover_large'),
           'large-payload',
         );
-        expect(await primary.get('monero_wallet_recover_large_wip'), isNull);
         expect(
-          await secondary.get('tiered:monero_wallet_recover_large_wip'),
+          await primary.get(
+            WriteAheadKeys.tombstone('monero_wallet_recover_large'),
+          ),
+          isNull,
+        );
+        expect(
+          await secondary.get(
+            WriteAheadKeys.tombstone('tiered:monero_wallet_recover_large'),
+          ),
           isNull,
         );
       },
@@ -303,7 +446,7 @@ void main() {
     test('listWalletsAsync includes legacy wallets before load', () async {
       final legacy = InMemoryStorageBackend()
         ..set('monero_wallet_legacy', 'legacy-data')
-        ..set('monero_wallet_legacy_wip', '1')
+        ..set(WriteAheadKeys.tombstone('monero_wallet_legacy'), '1')
         ..set('other_key', 'ignored');
       final primary = AsyncInMemoryStorageBackend();
       await primary.set('monero_wallet_primary', 'primary-data');
@@ -318,8 +461,8 @@ void main() {
     test('save overwrites primary storage and removes legacy copies', () async {
       final legacy = InMemoryStorageBackend()
         ..set('monero_wallet_shared', 'old-legacy-data')
-        ..set('monero_wallet_shared_staging', 'old-staging')
-        ..set('monero_wallet_shared_wip', '1');
+        ..set(WriteAheadKeys.staging('monero_wallet_shared'), 'old-staging')
+        ..set(WriteAheadKeys.tombstone('monero_wallet_shared'), '1');
       final primary = AsyncInMemoryStorageBackend();
       final svc = WalletPersistenceService.async(
         storage: MigratingStorageBackend(primary: primary, legacy: legacy),
@@ -345,8 +488,14 @@ void main() {
       expect(result.success, true);
       expect(await primary.containsKey('monero_wallet_shared'), true);
       expect(legacy.containsKey('monero_wallet_shared'), false);
-      expect(legacy.containsKey('monero_wallet_shared_staging'), false);
-      expect(legacy.containsKey('monero_wallet_shared_wip'), false);
+      expect(
+        legacy.containsKey(WriteAheadKeys.staging('monero_wallet_shared')),
+        false,
+      );
+      expect(
+        legacy.containsKey(WriteAheadKeys.tombstone('monero_wallet_shared')),
+        false,
+      );
     });
 
     test('clear removes wallet data from primary and legacy storage', () async {
@@ -389,8 +538,8 @@ void main() {
         final stagedData = stagingSvc.getRawData('recover');
         expect(stagedData, isNotNull);
         legacy
-          ..set('monero_wallet_recover_wip', '1')
-          ..set('monero_wallet_recover_staging', stagedData!);
+          ..set(WriteAheadKeys.tombstone('monero_wallet_recover'), '1')
+          ..set(WriteAheadKeys.staging('monero_wallet_recover'), stagedData!);
         final primary = AsyncInMemoryStorageBackend();
         final svc = WalletPersistenceService.async(
           storage: MigratingStorageBackend(primary: primary, legacy: legacy),
@@ -403,8 +552,14 @@ void main() {
         expect(result.success, true);
         expect(result.seed, 'recover seed phrase');
         expect(await primary.get('monero_wallet_recover'), stagedData);
-        expect(legacy.containsKey('monero_wallet_recover_wip'), false);
-        expect(legacy.containsKey('monero_wallet_recover_staging'), false);
+        expect(
+          legacy.containsKey(WriteAheadKeys.tombstone('monero_wallet_recover')),
+          false,
+        );
+        expect(
+          legacy.containsKey(WriteAheadKeys.staging('monero_wallet_recover')),
+          false,
+        );
       },
     );
   });

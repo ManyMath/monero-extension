@@ -1,3 +1,26 @@
+/// Keys for the write-ahead log that [StorageBackend.atomicSet] and
+/// [StorageBackend.maybeRecover] use, and the one place they are derived.
+///
+/// They are **prefixes**, not suffixes. A wallet's storage key is
+/// `monero_wallet_<id>` where `<id>` matches `^[a-zA-Z0-9_-]+$`, so suffixing it
+/// with `_staging`/`_wip` produces a key another wallet can legitimately own —
+/// the user only has to name one `savings_staging`. A key beginning `__wal_`
+/// cannot be a wallet key, so the two namespaces cannot meet.
+///
+/// Every backend that implements the WAL derives its keys from here. Five copies
+/// of the suffix scheme is how it went wrong: two backends, the migrator, and
+/// both test doubles.
+class WriteAheadKeys {
+  static const stagingPrefix = '__wal_staging__';
+  static const tombstonePrefix = '__wal_wip__';
+
+  /// Holds the value being written until it is committed under the real key.
+  static String staging(String key) => '$stagingPrefix$key';
+
+  /// Marks a write as in flight, so an interrupted one can be finished.
+  static String tombstone(String key) => '$tombstonePrefix$key';
+}
+
 abstract class StorageBackend {
   String? get(String key);
   void set(String key, String value);

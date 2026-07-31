@@ -63,8 +63,8 @@ class ChromeStorageBackend implements AsyncStorageBackend {
 
   @override
   Future<void> atomicSet(String key, String value) async {
-    final stagingKey = '${key}_staging';
-    final tombstoneKey = '${key}_wip';
+    final stagingKey = WriteAheadKeys.staging(key);
+    final tombstoneKey = WriteAheadKeys.tombstone(key);
 
     await set(tombstoneKey, '1');
     await set(stagingKey, value);
@@ -75,8 +75,8 @@ class ChromeStorageBackend implements AsyncStorageBackend {
 
   @override
   Future<void> maybeRecover(String key) async {
-    final tombstoneKey = '${key}_wip';
-    final stagingKey = '${key}_staging';
+    final tombstoneKey = WriteAheadKeys.tombstone(key);
+    final stagingKey = WriteAheadKeys.staging(key);
 
     if (!await containsKey(tombstoneKey)) return;
 

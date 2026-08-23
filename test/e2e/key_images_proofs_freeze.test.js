@@ -13,7 +13,7 @@ const {
 // Fixture key image for offline export and freeze/thaw testing.
 // Written as a repeat rather than a literal because the literal was 34 bytes: 'ab' typed
 // 34 times instead of 32. Rust rejected it with "key_image not 32 bytes" and the export
-// test failed — correctly. Nobody counts 68 characters by eye, so let the code do it.
+// test failed - correctly. Nobody counts 68 characters by eye, so let the code do it.
 const FIXTURE_KEY_IMAGE = 'ab'.repeat(32);
 
 // Synthetic output with valid Ed25519 basepoint as key -- enables offline key image export

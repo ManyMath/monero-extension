@@ -3,7 +3,7 @@ import 'dart:async';
 /// Moving a file to and from the user, without naming the platform that does it.
 ///
 /// The offline signing flow hands unsigned transactions out and takes signed ones back, and
-/// on web that means `dart:html` — a library the Dart VM does not have, so importing it
+/// on web that means `dart:html` - a library the Dart VM does not have, so importing it
 /// anywhere in a widget's tree makes that widget untestable under `flutter test`. Keeping
 /// it behind this interface is the same trick [SignalSender] uses for the worker bridge.
 /// A file the user handed back: the name they had for it, and its contents.
@@ -32,7 +32,7 @@ FileTransfer get fileTransfer {
   final transfer = _fileTransfer;
   if (transfer == null) {
     throw StateError(
-      'No FileTransfer installed. Call setFileTransfer() during startup — '
+      'No FileTransfer installed. Call setFileTransfer() during startup - '
       'setWebFileTransfer() on web, or a fake in tests.',
     );
   }

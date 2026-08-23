@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 // Not a private copy. This file had its own `reloadExtensionPage`, which left `goto` on
 // puppeteer's 30s default and then *slept three seconds* in place of waiting for the
-// bindings — so the reload that fixtures.js was hardened against was, in the one file
+// bindings - so the reload that fixtures.js was hardened against was, in the one file
 // where it decides five tests, still the unhardened one.
 const { reloadExtensionPage, PAGE_LOAD_BUDGET_MS } = require('./fixtures');
 
@@ -244,7 +244,7 @@ describe('Core Monero WASM', () => {
       // The test's own ceiling has to sit *above* the page-load budget, or the budget
       // decides nothing: this reload was measured at 3.3s and at over 30s on identical
       // code within one session, and at 30000 the jest timeout fired first either way.
-      // The spread itself is still unexplained — see SECURITY-REVIEW.md.
+      // The spread itself is still unexplained - see SECURITY-REVIEW.md.
     }, PAGE_LOAD_BUDGET_MS + 30000);
 
     it('derives same address after extension reload', async () => {
@@ -296,7 +296,7 @@ describe('Core Monero WASM', () => {
 
       if (!hasExportSignal) {
         console.warn(
-          'send_export_keys_file_request not in current WASM build — ' +
+          'send_export_keys_file_request not in current WASM build - ' +
           'skipping signal-based export test. Rebuild WASM to enable.'
         );
         return;

@@ -382,7 +382,7 @@ void main() {
       reason: 'redirected change must be called out, not rendered as ordinary change',
     );
 
-    // warnIfMissed: false because the button is *meant* to be disabled here — the tap
+    // warnIfMissed: false because the button is *meant* to be disabled here - the tap
     // landing on nothing is the behaviour under test, not an accident of layout.
     await tester.tap(find.text('Sign'), warnIfMissed: false);
     await tester.pump();
@@ -401,7 +401,7 @@ void main() {
   ) async {
     // A seed offset passphrase picks a different wallet out of the same mnemonic, so a
     // request that leaves it empty derives the wrong wallet: the preview disowns the
-    // wallet's own change and the signer then refuses it. The dialog used to hard-code
+    // wallet's own change and the signer then rejects it. The dialog used to hard-code
     // '' at both call sites, which meant the field existed on the wire and nothing ever
     // filled it.
     await tester.pumpWidget(

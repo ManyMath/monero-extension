@@ -12,7 +12,7 @@ path-depends into it.
 
 ## Setup
 ```sh
-git submodule update --init --recursive   # vendor/monero-rust
+git submodule update --init --recursive   # vendor/monero-rust and vendor/monero-ffi
 flutter pub get
 ```
 
@@ -43,14 +43,14 @@ scripts/test-all.sh
 Six tiers: the `monero_wasm` wasm32 build, the signal generator's own tests, the
 generated-signal-surface check, the dart suite, the browser suite, and the puppeteer
 e2e suite. A missing or broken toolchain is reported as a **skip**; a tier that runs
-and fails is a **failure**. The two are never conflated — keep it that way.
+and fails is a **failure**. The two are never conflated - keep it that way.
 
-`flutter test` silently skips `@TestOn('browser')` files, which is why the browser
+`flutter test` skips `@TestOn('browser')` files, which is why the browser
 tier gets its own invocation, and why the runner *discovers* those files by
-annotation rather than reading a hand-written list.
+annotation rather than reading a manual list.
 
-The library's own tiers — the rust suite, its wasm32 build and unit tests, the
-mock-rpc send path and the regtest end-to-end tests — live with the library:
+The library's own tiers - the rust suite, its wasm32 build and unit tests, the
+mock-rpc send path and the regtest end-to-end tests - live with the library:
 ```sh
 vendor/monero-rust/scripts/test-all.sh
 ```
@@ -63,24 +63,24 @@ flutter test
 ```
 
 ### E2E (Puppeteer/Jest)
-`scripts/test-all.sh` runs the whole suite as its sixth tier — 70 tests, ~460
+`scripts/test-all.sh` runs the whole suite as its sixth tier - 70 tests, ~460
 assertions, in a real Chrome with the built extension loaded. It needs `npm install`
-once; without `node_modules` the tier reports a skip rather than passing quietly.
+once; without `node_modules` the tier reports a skip rather than passing.
 
 The tier **rebuilds the extension every run**. That is not incidental: the artifact
 under test has to match the source that produced it, and a stale `build/extension`
 hides a fix exactly as well as it hides a bug.
 
 It runs **every** file, not a curated subset. With no node reachable the suite settles
-at **50 passed / 20 skipped / 0 failed**. A hand-written "these are the safe ones" list
-would be the same trap as a hand-written browser-test list: the file left off it looks
+at **50 passed / 20 skipped / 0 failed**. A manual "these are the safe ones" list
+would be the same trap as a manual browser-test list: the file left off it looks
 exactly like one that passed.
 
-**Node-dependent tests are gated at registration time**, via `NODE_AVAILABLE` in
+**Node-dependent tests are locked at registration time**, via `NODE_AVAILABLE` in
 `fixtures.js`, which probes synchronously when the module is required. That is not a
 style choice. Jest evaluates `describe` bodies before any `beforeAll` runs, so the old
 `describeIfNode = nodeAvailable ? describe : describe.skip` was reading a flag that was
-still `false` — it was *always* `describe.skip`, and 9 tests behind it could never run
+still `false` - it was *always* `describe.skip`, and 9 tests behind it could never run
 under any conditions. A further 15 used a `runIfNodeAvailable()` wrapper *inside* the
 test body, which returned early and reported a **pass having executed nothing**. Both
 now resolve to `it.skip`/`describe.skip` when no node answers, so a skip is a skip and
@@ -95,7 +95,7 @@ npm run test:signal-e2e -- test/e2e/multi_wallet_scan.test.js   # single file
 ```
 
 **Always set `STAGENET_NODE_URL` explicitly.** Unset, it falls back to
-`http://127.0.0.1:38081` — the stagenet port, which other projects routinely bind for
+`http://127.0.0.1:38081` - the stagenet port, which other projects routinely bind for
 their own regtest daemons, so the result would depend on a foreign process and
 `flushDoNotRelayTransactions()` would act on somebody else's chain. The tier pins it to
 an unreachable address unless you override it, for exactly that reason.
@@ -105,15 +105,15 @@ both about *shared* nodes rather than the code:
 
 - **Scan time varies enormously.** The same ~130k-block scan took 31s, 130s and 186s on
   consecutive runs against a public node. `E2E_SCAN_TIMEOUT_MS` (default 300000) is a
-  ceiling, not a delay — raise it for a slow remote, lower it for a local one.
+  ceiling, not a delay - raise it for a slow remote, lower it for a local one.
 - **`TX-02` needs a funded test wallet, and `HONKED_SEED`'s stagenet outputs are spent.**
-  It fails with `is_double_spend: true` — the daemon already knows those key images. The
+  It fails with `is_double_spend: true` - the daemon already knows those key images. The
   app is behaving correctly at both ends: it builds a transaction from the outputs its
   scan found, and the daemon rejects spending them again. Fixing this needs stagenet
   funds sent to `HONKED_ADDRESS`, not a code change.
 
   (`flushDoNotRelayTransactions()` is unrelated cleanup and is a no-op on a public node
-  anyway — `flush_txpool` is an admin RPC and returns `-32601 Method not found` there.)
+  anyway - `flush_txpool` is an admin RPC and returns `-32601 Method not found` there.)
 
 So: a public node confirms the suite runs, a dedicated node makes it fast and
 predictable, and a funded wallet is what makes the live-transaction path assertable.

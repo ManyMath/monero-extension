@@ -15,7 +15,7 @@ class TransactionUtils {
     final blockHeight = scan.blockHeight;
     final blockTimestamp = scan.blockTimestamp;
 
-    // Build O(1) lookup: txHash → index in transactions list
+    // Build O(1) lookup: txHash -> index in transactions list
     final txIndexMap = <String, int>{};
     for (int i = 0; i < transactions.length; i++) {
       txIndexMap[transactions[i].txHash] = i;

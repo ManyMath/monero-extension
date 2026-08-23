@@ -245,7 +245,7 @@ class ExtensionBuilder {
     content = content.replaceAll('</head>', style);
 
     // Add loading indicator and inject scripts
-    // No wasm_loader.js needed — the worker handles WASM init
+    // No wasm_loader.js needed - the worker handles WASM init
     const bodyScripts = '''<body>
   <div id="loading">Loading Monero Wallet...</div>
 

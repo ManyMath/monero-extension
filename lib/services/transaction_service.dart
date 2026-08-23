@@ -112,7 +112,7 @@ class TransactionService {
     bool subtractFee = false,
     // Required, not defaulted: a passphrase picks a different wallet out of the same
     // mnemonic, so a caller that forgets one signs as somebody else. A default of '' let
-    // the offline signer and this path silently derive the wrong wallet.
+    // the offline signer and this path derive the wrong wallet.
     required String passphrase,
     required int bip39AccountIndex,
   }) {

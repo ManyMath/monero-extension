@@ -5,7 +5,7 @@ import 'package:monero_extension/services/rust_crypto_backend.dart';
 import 'package:monero_extension/src/ffi/signal_sender.dart';
 
 /// A sender with a stream per signal type, so a response can be delivered to exactly the
-/// listeners of one type — which is what the real bridge does.
+/// listeners of one type - which is what the real bridge does.
 class _Sender implements SignalSender {
   final sent = <({String name, Map<String, dynamic> data})>[];
   final _controllers = <String, StreamController<Map<String, dynamic>>>{};
@@ -58,7 +58,7 @@ void main() {
 
   // `SaveWalletDataRequest` and `SaveWithDerivedKeyRequest` are answered by the *same*
   // response type, and every request used to complete on the first one off the broadcast
-  // stream. The manual save and the auto-save are exactly this pair — and the manual save
+  // stream. The manual save and the auto-save are exactly this pair - and the manual save
   // never checked `_isAutoSaving`, so it could start while an auto-save was in flight.
   // Each ciphertext is then written under its own caller's wallet id.
   test('two saves in flight each get their own ciphertext', () async {
@@ -77,7 +77,7 @@ void main() {
       reason: 'premise: the two requests are distinguishable',
     );
 
-    // The second request is answered first — a normal outcome, since the two take
+    // The second request is answered first - a normal outcome, since the two take
     // different amounts of work (one runs the KDF, the other does not).
     sender.emit('WalletDataSavedResponse', _saved(autoId, 'cipher_for_auto'));
     sender.emit('WalletDataSavedResponse', _saved(manualId, 'cipher_for_manual'));
@@ -88,7 +88,7 @@ void main() {
 
   // The other way the same hole opens, and the one that does not need two live callers:
   // a request that timed out is abandoned, but its response still arrives. Without an id
-  // to reject it, the *next* request takes it — and stores the previous wallet's
+  // to reject it, the *next* request takes it - and stores the previous wallet's
   // ciphertext under the current wallet's id.
   test('a response for an abandoned request does not satisfy the next one', () async {
     final backend = RustCryptoBackend();
@@ -134,8 +134,8 @@ void main() {
   });
 
   // The negative control. Filtering on an id that never matches would make every save
-  // and load hang until its 10s timeout and then report failure — the whole of
-  // persistence broken, silently, and the tests above would still pass.
+  // and load hang until its 10s timeout and then report failure - the whole of
+  // persistence broken,, and the tests above would still pass.
   test('a matching response completes the request it belongs to', () async {
     final backend = RustCryptoBackend();
 

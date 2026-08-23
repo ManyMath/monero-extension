@@ -28,7 +28,7 @@ class _SilentSignalSender implements SignalSender {
 void main() {
   setUp(() {
     // main() installs the worker bridge; without a stand-in, every widget that sends a
-    // signal throws on the null sender. That, not any UI fault, is what silently broke
+    // signal throws on the null sender. That, not any UI fault, is what broke
     // these tests at the bare-FFI refactor.
     setSignalSender(_SilentSignalSender());
   });
@@ -67,7 +67,7 @@ void main() {
     }
 
     // Seed Phrase labels both its panel and an input; Send labels both its panel and its
-    // submit button. One-or-more is the honest assertion for those.
+    // submit button. One-or-more is the right assertion for those.
     expect(find.text('Seed Phrase'), findsWidgets);
     expect(find.text('Send'), findsWidgets);
   });
@@ -86,7 +86,7 @@ void main() {
     await pumpDebugView(tester);
 
     // A disabled Scan One on a fresh view would mean the panel came up in a state the user
-    // cannot act from — worth pinning even though the surrounding layout is not.
+    // cannot act from - worth pinning even though the surrounding layout is not.
     final scanOne = tester.widget<ElevatedButton>(
       find.widgetWithText(ElevatedButton, 'Scan One'),
     );

@@ -23,7 +23,7 @@ const UNSIGNED_TX_HEX = '0010424242424242424242424242424242424242424242424242424
  * bodies during registration, before any beforeAll runs, so a `nodeAvailable` set in
  * beforeAll is still false when `describeIfNode = nodeAvailable ? describe : describe.skip`
  * is evaluated. That gate was therefore always describe.skip and the tests behind it could
- * never run — not "were skipped because no node", but *could not run at all*, even with a
+ * never run - not "were skipped because no node", but *could not run at all*, even with a
  * node verified reachable in 128ms.
  *
  * Node has no synchronous HTTP, so this spawns a short-lived child to do the request.
@@ -191,16 +191,16 @@ async function flushDoNotRelayTransactions(nodeUrl = NODE_URL) {
 
 // Scanning from LIVE_TX_SCAN_START_HEIGHT to the stagenet tip is ~130k blocks. Against a
 // local node that is quick; against a public one over the internet it is not, and 120s was
-// not enough. Overridable so a slow remote node does not look like a product failure —
+// not enough. Overridable so a slow remote node does not look like a product failure -
 // these tests only register at all when a node is configured, so a longer ceiling costs the
 // default run nothing.
 // 120000 was marginal, not wrong: the same ~130k-block scan finished in 31s on one run and
 // blew past 130s on another, so the failures looked deterministic and were not. This is a
-// ceiling, not a delay — a scan that finishes in 31s still takes 31s.
+// ceiling, not a delay - a scan that finishes in 31s still takes 31s.
 const SCAN_TIMEOUT_MS = Number(process.env.E2E_SCAN_TIMEOUT_MS || 300000);
 
 // Building a transaction fetches ring members over RPC, so it is latency-bound the same way
-// the scan is. 60s was enough locally and not against a public node — one run finished tx
+// the scan is. 60s was enough locally and not against a public node - one run finished tx
 // creation in 31s total and another spent the whole 60s on this step alone.
 const TX_TIMEOUT_MS = Number(process.env.E2E_TX_TIMEOUT_MS || 120000);
 
@@ -287,7 +287,7 @@ async function sendSignalAndWait(page, signalFnName, requestJson, responseTypeNa
  * The navigation timeout is explicit because puppeteer's 30s default was a race, not
  * headroom. After the oversized-history test puts four wallets of 3,200 outputs each into
  * IndexedDB, this reload was measured at 2.7s, 27.6s, and over 30s on different runs of
- * the same code — so whether the suite passed came down to timing rather than behaviour.
+ * the same code - so whether the suite passed came down to timing rather than behaviour.
  * The spread is the interesting part and is not explained here; a reload that sometimes
  * takes ten times as long as others is worth profiling on its own.
  */

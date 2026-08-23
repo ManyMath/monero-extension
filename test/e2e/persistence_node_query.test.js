@@ -263,7 +263,7 @@ describe('Persistence & Node-Query Tests', () => {
       );
 
       // The response is correlated to its request, which is what stops a save and an
-      // auto-save — both answered by this type — satisfying each other's caller.
+      // auto-save - both answered by this type - satisfying each other's caller.
       expect(saveResp.request_id).toBe('e2e-roundtrip-save');
       expect(saveResp.success).toBe(true);
       expect(saveResp.encrypted_data).toBeTruthy();

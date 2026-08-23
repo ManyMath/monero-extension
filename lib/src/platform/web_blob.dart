@@ -10,8 +10,8 @@ import 'dart:typed_data';
 /// simply downloads a decimal transcript of the file instead of the file, and only
 /// whoever tries to load it later finds out.
 ///
-/// Both callers happen to pass a `Uint8List` today — `utf8.encode` and the dialog's
-/// `_hexDecode` both return one — which is the only reason this has never been seen. That
+/// Both callers happen to pass a `Uint8List` today - `utf8.encode` and the dialog's
+/// `_hexDecode` both return one - which is the only reason this has never been seen. That
 /// is an accident of two call sites, not a property of the `List<int>` they are typed as,
 /// so the conversion belongs here rather than in a comment asking callers to be careful.
 html.Blob binaryBlob(List<int> bytes) => html.Blob(

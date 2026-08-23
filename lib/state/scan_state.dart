@@ -44,8 +44,8 @@ class ScanState extends ChangeNotifier {
   /// The wallet a single-wallet scan is running for, when that is known.
   ///
   /// A `BlockScanResponse` carries no wallet identity, and the handler credits it to
-  /// whichever wallet is active when it arrives. `MultiWalletScanResponse` — the sibling
-  /// for the same job — routes each result by the address it was scanned for; this path
+  /// whichever wallet is active when it arrives. `MultiWalletScanResponse` - the sibling
+  /// for the same job - routes each result by the address it was scanned for; this path
   /// had nothing, and it is the one the app runs whenever a single wallet is open. Since
   /// switching or loading a wallet does not stop a running scan, blocks scanned for one
   /// wallet were merged into another: its outputs, its transactions, and the chain
@@ -56,7 +56,7 @@ class ScanState extends ChangeNotifier {
   /// Whether a scan result for [scanWalletId] still belongs to the wallet in front of us.
   ///
   /// Only positive knowledge counts. A scan of a seed typed into the field has no wallet
-  /// to name, and a wallet can be opened after such a scan starts; refusing those would
+  /// to name, and a wallet can be opened after such a scan starts; rejecting those would
   /// discard results the app has always kept, so an unknown id on either side defers
   /// rather than drops.
   bool _resultIsForTheActiveWallet(String? scanWalletId) {
@@ -455,7 +455,7 @@ class ScanState extends ChangeNotifier {
     scanResult = null;
     scanError = null;
     // The one-shot scan reports through the same unidentified BlockScanResponse, so it
-    // needs the same binding — and it has to be set on every scan, or a stale id from an
+    // needs the same binding - and it has to be set on every scan, or a stale id from an
     // earlier wallet would reject this one's result.
     _singleScanWalletId = _walletState.lifecycle.activeWalletId;
     notifyListeners();

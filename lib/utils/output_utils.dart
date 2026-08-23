@@ -65,7 +65,7 @@ class OutputUtils {
     List<OwnedOutput> existing,
     List<OwnedOutput> incoming,
   ) {
-    // Build O(1) lookup: "txHash:outputIndex" → index in existing list
+    // Build O(1) lookup: "txHash:outputIndex" -> index in existing list
     final indexMap = <String, int>{};
     for (int i = 0; i < existing.length; i++) {
       indexMap['${existing[i].txHash}:${existing[i].outputIndex}'] = i;
@@ -85,7 +85,7 @@ class OutputUtils {
 
   /// Add outputs not already present (by txHash+outputIndex) in-place.
   /// If an existing output has blockHeight=0 and the incoming one has a
-  /// non-zero blockHeight, update the existing entry (mempool→confirmed).
+  /// non-zero blockHeight, update the existing entry (mempool->confirmed).
   static void addIfAbsent(
     List<OwnedOutput> existing,
     List<OwnedOutput> incoming,

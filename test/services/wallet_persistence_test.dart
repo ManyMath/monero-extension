@@ -771,7 +771,7 @@ void main() {
       );
       expect(loadResult.success, true);
 
-      // 6. Verify ALL data survived the roundtrip
+      // 6. Verify ALL data made it through the roundtrip
       expect(loadResult.seed, 'round trip seed phrase words');
       expect(loadResult.network, 'mainnet');
       expect(loadResult.address, '4MainAddr...');

@@ -65,7 +65,7 @@ BlockScanResponse _scanned(String txHash, int height) => BlockScanResponse(
   spentKeyImageTxHashes: const [],
 );
 
-/// Put a wallet at a scan height with an output there, without running a scan for it —
+/// Put a wallet at a scan height with an output there, without running a scan for it -
 /// a scan started while it is the only open wallet would rebind `_singleScanWalletId`
 /// and stop being the case under test.
 void _seedWallet(
@@ -164,7 +164,7 @@ void main() {
   });
 
   // A scan of a seed typed into the field has no wallet id to bind to, and the wallet it
-  // belongs to is opened once its address derives — after the scan starts. Requiring a
+  // belongs to is opened once its address derives - after the scan starts. Requiring a
   // match would discard results the app has always kept.
   test('a scan started before any wallet was open still credits the wallet', () {
     final hub = SignalHub();
@@ -192,9 +192,9 @@ void main() {
     );
   });
 
-  // The reorg is the other outcome of the same scan, and it was gated on nothing at all.
+  // The reorg is the other outcome of the same scan, and it depended on nothing at all.
   // `handleReorgDetected` rewinds `activeWallet.currentHeight` to `splitHeight - 1` and
-  // rebuilds its transaction list — so a fork found while scanning a wallet at height
+  // rebuilds its transaction list - so a fork found while scanning a wallet at height
   // 700000 moved a wallet sitting at 200 *forward* past every block it had yet to scan,
   // and it then reports itself synced over outputs it never looked for.
   test('a reorg found scanning another wallet is not applied to the active one', () {
@@ -220,7 +220,7 @@ void main() {
     _seedWallet(walletState, 'wallet_b', 'b_own_output', 200);
     expect(walletState.activeWalletId, 'wallet_b');
 
-    // A's scan reports a fork at 700000 — a height B has never been anywhere near.
+    // A's scan reports a fork at 700000 - a height B has never been anywhere near.
 
     hub.onReorgDetected!(
       ReorgDetectedResponse(
@@ -242,7 +242,7 @@ void main() {
 
   // The other half of the same signal, and the destructive one. Before this was bound,
   // the Rust `HandleReorg` rolled back whatever wallet the actor then held, so the key
-  // images it reports removed are the *active* wallet's own — which Dart then deletes.
+  // images it reports removed are the *active* wallet's own - which Dart then deletes.
   test("a reorg found scanning another wallet does not delete the active one's outputs", () {
     final hub = SignalHub();
     final walletState = _walletState(hub);

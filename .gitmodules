@@ -1,3 +1,6 @@
 [submodule "vendor/monero-rust"]
 	path = vendor/monero-rust
 	url = ssh://git@git.manymath.com:2222/sneurlax/monero-rust.git
+[submodule "vendor/monero-ffi"]
+	path = vendor/monero-ffi
+	url = ssh://git@ssh.manymath.com:2222/sneurlax/monero-ffi.git

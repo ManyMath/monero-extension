@@ -3,7 +3,7 @@
 ///
 /// They are **prefixes**, not suffixes. A wallet's storage key is
 /// `monero_wallet_<id>` where `<id>` matches `^[a-zA-Z0-9_-]+$`, so suffixing it
-/// with `_staging`/`_wip` produces a key another wallet can legitimately own —
+/// with `_staging`/`_wip` produces a key another wallet can legitimately own -
 /// the user only has to name one `savings_staging`. A key beginning `__wal_`
 /// cannot be a wallet key, so the two namespaces cannot meet.
 ///

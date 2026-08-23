@@ -31,7 +31,7 @@ class OfflineSigningDialog extends StatefulWidget {
   final String? seed;
 
   /// The wallet's seed offset passphrase. A passphrase picks a different wallet out of
-  /// the same mnemonic, so signing without it signs as somebody else — it must travel
+  /// the same mnemonic, so signing without it signs as somebody else - it must travel
   /// with the seed, not be assumed empty.
   final String passphrase;
   final int bip39AccountIndex;
@@ -151,8 +151,8 @@ class _OfflineSigningDialogState extends State<OfflineSigningDialog> {
   /// Ask what the transaction would pay, and show it, before signing anything.
   ///
   /// The unsigned transaction is authored by the online, view-only wallet, which this
-  /// signer does not trust — that asymmetry is the whole reason for signing offline.
-  /// monero-rust refuses outright to sign a transaction whose change is redirected, but a
+  /// signer does not trust - that asymmetry is the whole reason for signing offline.
+  /// monero-rust will not sign a transaction whose change is redirected, but a
   /// refusal after the fact is not the same as letting the user see where their money is
   /// going. Monero's cold-signing flow shows every destination and waits for confirmation;
   /// this is that step.
@@ -589,8 +589,8 @@ class _OfflineSigningDialogState extends State<OfflineSigningDialog> {
 
   /// Every destination, with the ones this wallet cannot spend from called out.
   ///
-  /// Change that is not ours is the redirection attack, and monero-rust refuses to sign
-  /// it — but the user should see it here rather than meet a refusal they cannot explain.
+  /// Change that is not ours is the redirection attack, and monero-rust will not sign
+  /// it - but the user should see it here rather than meet a refusal they cannot explain.
   Widget _buildConfirmDestinations() {
     final foreignChange = _destinations.any((d) => d.isChange && !d.isOurs);
     return Column(
@@ -604,7 +604,7 @@ class _OfflineSigningDialogState extends State<OfflineSigningDialog> {
         const SizedBox(height: 12),
         ..._destinations.map((destination) {
           final label = destination.isChange
-              ? (destination.isOurs ? 'change, back to you' : 'CHANGE — NOT YOUR ADDRESS')
+              ? (destination.isOurs ? 'change, back to you' : 'CHANGE - NOT YOUR ADDRESS')
               : (destination.isOurs ? 'to you' : 'to a different wallet');
           final alarming = destination.isChange && !destination.isOurs;
           return Padding(

@@ -18,7 +18,7 @@ const NODE_URL = process.env.STAGENET_NODE_URL || 'http://127.0.0.1:38081';
 const SPENT_STATUS_FIXTURE = {
   blockHeight: 2043388,
   // Verified against stagenet itself via get_block_header_by_height. The previous value,
-  // 647452847e05..., is not this chain's hash at this height — the app was returning the
+  // 647452847e05..., is not this chain's hash at this height - the app was returning the
   // right one and the fixture was wrong. It had never been checked because the test could
   // not run: it sat behind a gate that was always describe.skip.
   blockHash: '22f6841ce898cdc2912bf32354d3bed7ae0746c5926d3b035eb9997b20361d5f',

@@ -12,7 +12,7 @@ import 'package:monero_extension/src/platform/web_blob.dart';
 /// Covers the `dart:html` leaf of the offline signing path, which the `FileTransfer` seam
 /// deliberately cannot reach.
 ///
-/// `pick()` still isn't here — it opens a real file dialog and waits for a human. What is
+/// `pick()` still isn't here - it opens a real file dialog and waits for a human. What is
 /// here is the half that decides what a downloaded file *contains*, which is where the one
 /// silent failure lives: a Blob built from a plain `List<int>` holds the decimal text of
 /// the bytes rather than the bytes, and nothing anywhere throws. Exports are the last step
@@ -64,8 +64,8 @@ void main() {
   group('WebFileTransfer', () {
     test('download() completes against the real dart:html APIs', () {
       // Whether the browser writes the file is the browser's business and not observable
-      // here. What this pins is that the four calls download() makes — Blob, object URL,
-      // anchor, revoke — are all still valid, which is the part that rots silently when
+      // here. What this pins is that the four calls download() makes - Blob, object URL,
+      // anchor, revoke - are all still valid, which is the part that rots when
       // `dart:html` changes underneath it.
       expect(
         () => const WebFileTransfer().download('unsigned.bin', <int>[1, 2, 3]),

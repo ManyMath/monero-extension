@@ -8,7 +8,7 @@ class RustCryptoBackend implements CryptoBackend {
   /// Every one of these calls used to complete on the first response of its type off a
   /// broadcast stream. `SaveWalletDataRequest` and `SaveWithDerivedKeyRequest` are
   /// answered by the same type, so a manual save and an auto-save satisfied each other's
-  /// completer — and a response arriving after the 10s timeout satisfied the *next*
+  /// completer - and a response arriving after the 10s timeout satisfied the *next*
   /// request instead, whose caller then wrote that ciphertext under its own wallet id.
   /// The counter is process-wide because the completers are.
   static int _nextRequestId = 0;

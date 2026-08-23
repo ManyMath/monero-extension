@@ -1038,7 +1038,7 @@ void main() {
           scanHeight: loadResult.continuousScanCurrentHeight!,
         );
 
-        // 7. Verify EVERYTHING survived
+        // 7. Verify EVERYTHING matches
         expect(mgr.walletId, 'hemlock');
         expect(mgr.allOutputs.length, 2);
         expect(mgr.allOutputs[0].txHash, 'tx1');

@@ -1,1 +1,1 @@
-export '../ffi/signal_types.dart';
+export 'package:monero_ffi/monero_ffi.dart';

@@ -58,8 +58,8 @@ pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk+-3.0)
 add_subdirectory("runner")
 
 # === Rust native library (monero_wasm) ===
-set(RUST_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/../native/monero_wasm/Cargo.toml")
-set(RUST_TARGET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../target")
+set(RUST_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/../vendor/monero-ffi/native/monero_wasm/Cargo.toml")
+set(RUST_TARGET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../vendor/monero-ffi/target")
 set(RUST_LIB_NAME "libmonero_wasm.so")
 
 # Choose cargo profile based on CMake build type.

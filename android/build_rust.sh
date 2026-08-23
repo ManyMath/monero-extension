@@ -7,7 +7,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-MANIFEST="${SCRIPT_DIR}/../native/monero_wasm/Cargo.toml"
+FFI_ROOT="${SCRIPT_DIR}/../vendor/monero-ffi"
+MANIFEST="${FFI_ROOT}/native/monero_wasm/Cargo.toml"
 JNILIBS_DIR="${SCRIPT_DIR}/app/src/main/jniLibs"
 
 # --- Detect NDK path ---
@@ -30,7 +31,7 @@ fi
 echo "Using NDK at: ${NDK_PATH}"
 
 # Add NDK toolchain to PATH so cargo can find the linkers
-# configured in native/monero_wasm/.cargo/config.toml.
+# configured in vendor/monero-ffi/native/monero_wasm/.cargo/config.toml.
 HOST_TAG=""
 case "$(uname -s)" in
   Linux*)  HOST_TAG="linux-x86_64" ;;
@@ -65,7 +66,7 @@ for RUST_TARGET in "${!ABI_MAP[@]}"; do
   cargo build --manifest-path "${MANIFEST}" --target "${RUST_TARGET}" ${CARGO_FLAGS}
 
   # Copy the .so into jniLibs.
-  SRC="${SCRIPT_DIR}/../target/${RUST_TARGET}/${CARGO_PROFILE}/libmonero_wasm.so"
+  SRC="${FFI_ROOT}/target/${RUST_TARGET}/${CARGO_PROFILE}/libmonero_wasm.so"
   DEST="${JNILIBS_DIR}/${ABI}"
   mkdir -p "${DEST}"
   cp "${SRC}" "${DEST}/libmonero_wasm.so"

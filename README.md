@@ -2,9 +2,8 @@
 Flutter web extension demonstrating monero-rust. Runs as an extension rather
 than a local webserver because of CORS restrictions.
 
-Split out of `monero-rust/flutter/web`, whose history it keeps. The library it
-wraps is a submodule at `vendor/monero-rust`, and `native/monero_wasm`
-path-depends into it.
+Split out of `monero-rust/flutter/web`, whose history it keeps. The Rust library
+and language boundary are pinned at `vendor/monero-rust` and `vendor/monero-ffi`.
 
 ## Requirements
 - Flutter 3.24.3
@@ -16,8 +15,8 @@ git submodule update --init --recursive   # vendor/monero-rust and vendor/monero
 flutter pub get
 ```
 
-Nothing here builds without the submodule: `native/monero_wasm` depends on
-`vendor/monero-rust/rust/monero-rust`.
+Nothing here builds without both submodules: the FFI runtime depends on the
+adjacent `vendor/monero-rust/rust/monero-rust` crate.
 
 ## Build
 ```sh
@@ -58,7 +57,7 @@ Neither script covers the other.
 
 Individually:
 ```sh
-cd native/monero_wasm && cargo test --lib
+vendor/monero-ffi/scripts/test-all.sh
 flutter test
 ```
 

@@ -36,62 +36,23 @@ record_failure() {
   - $1"
 }
 
-# monero_wasm path-depends on vendor/monero-rust/rust/monero-rust, so an uninitialised
-# submodule takes the wasm32 tier with it. That is a FAILURE, not a skip: a missing
-# toolchain leaves the subject matter intact and is the user's environment, but a missing
-# submodule means the crate under test cannot be built at all. Skipping it would let a
-# fresh clone print "all tiers passed" having compiled nothing that touches monero-rust,
-# which is the kind of green-but-empty check this script exists to stop.
-step "monero-rust submodule is checked out"
-if [ ! -f "$ROOT/vendor/monero-rust/rust/monero-rust/Cargo.toml" ]; then
-    echo "vendor/monero-rust is not checked out. Run:" >&2
+# monero-ffi path-depends on the adjacent monero-rust submodule. Missing either checkout
+# is a failure: otherwise a fresh clone could report success without compiling the code it ships.
+step "required submodules are checked out"
+if [ ! -f "$ROOT/vendor/monero-rust/rust/monero-rust/Cargo.toml" ] \
+    || [ ! -x "$ROOT/vendor/monero-ffi/scripts/test-all.sh" ]; then
+    echo "vendor/monero-rust or vendor/monero-ffi is not checked out. Run:" >&2
     echo "  git submodule update --init --recursive" >&2
-    record_failure "monero-rust submodule missing"
+    record_failure "required submodule missing"
 else
-    echo "ok: $(git -C "$ROOT/vendor/monero-rust" rev-parse --short HEAD)"
+    echo "monero-rust: $(git -C "$ROOT/vendor/monero-rust" rev-parse --short HEAD)"
+    echo "monero-ffi:  $(git -C "$ROOT/vendor/monero-ffi" rev-parse --short HEAD)"
 fi
 
-step "wasm32 build"
-if ! (cd "$ROOT/native/monero_wasm" && cargo check --target wasm32-unknown-unknown); then
-    record_failure "monero_wasm wasm32"
-fi
-
-step "monero_wasm unit and integration tests"
-# 94 of them, and until now no tier ran a single one - the wasm32 step above is a `cargo
-# check`, which compiles the library and never builds a test target, so every #[test] in
-# this crate was invisible. That includes actors/wallet_test.rs, the only tests anywhere
-# that drive the actors the extension is built out of.
-#
-# They run on the *host*, not on wasm32: they are #[tokio::test]s over the actor messages
-# and the signal types, none of which need a browser. The wasm32 tier stays as it is - it
-# is what says the crate still builds for the target it ships to.
-if ! (cd "$ROOT/native/monero_wasm" && cargo test --quiet); then
-    record_failure "monero_wasm tests"
-fi
-
-step "signal generator's own tests"
-# codegen has its own [workspace], so the root workspace's --workspace never reaches these.
-# They pin the checks the generator makes on signals/mod.rs - chiefly that Rust cannot skip
-# serialising a field the generated Dart casts as required, which no compiler on either side
-# would catch. They need neither formatter, so no skip applies.
-if ! (cd "$ROOT/native/codegen" && cargo test --quiet); then
-    record_failure "codegen unit tests"
-fi
-
-step "generated signal surface is current"
-# native/monero_wasm/src/signals/mod.rs is the source of truth for the Dart <-> Rust signal
-# surface, and codegen emits signal_types.dart, ffi_web.rs and signal_ids.rs from it.
-# Nothing ran this check for six months, in which time the generator fell behind the files
-# it owns and regenerating would have reverted shipping code. It only means anything while
-# it runs.
-#
-# Both formatters are part of the comparison, so a missing one is a skip, not a failure.
-if ! command -v dart >/dev/null 2>&1; then
-    echo "dart not on PATH - skipping the codegen check (it formats the Dart output)" >&2
-elif ! command -v rustfmt >/dev/null 2>&1; then
-    echo "rustfmt not on PATH - skipping the codegen check (it formats the Rust output)" >&2
-elif ! (cd "$ROOT/native/codegen" && cargo run --quiet -- --check); then
-    record_failure "generated signal surface out of date"
+step "monero-ffi owned tiers"
+if [ -x "$ROOT/vendor/monero-ffi/scripts/test-all.sh" ] \
+    && ! "$ROOT/vendor/monero-ffi/scripts/test-all.sh"; then
+    record_failure "monero-ffi tiers"
 fi
 
 step "dart tests"

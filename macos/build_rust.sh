@@ -6,8 +6,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-MANIFEST="${SCRIPT_DIR}/../native/monero_wasm/Cargo.toml"
-TARGET_DIR="${SCRIPT_DIR}/../target"
+FFI_ROOT="${SCRIPT_DIR}/../vendor/monero-ffi"
+MANIFEST="${FFI_ROOT}/native/monero_wasm/Cargo.toml"
+TARGET_DIR="${FFI_ROOT}/target"
 
 CARGO_PROFILE="${CARGO_PROFILE:-release}"
 CARGO_FLAGS=""

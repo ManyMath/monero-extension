@@ -24,6 +24,7 @@ class ExtensionBuilder {
   late final String extensionDir;
   late final String webBuildDir;
   late final String wasmCrateDir;
+  late final String wasmWorkerSource;
 
   ExtensionBuilder() {
     final scriptDir = path.dirname(Platform.script.toFilePath());
@@ -31,7 +32,21 @@ class ExtensionBuilder {
     buildDir = path.join(projectRoot, 'build');
     extensionDir = path.join(buildDir, 'extension');
     webBuildDir = path.join(buildDir, 'web');
-    wasmCrateDir = path.join(projectRoot, 'native', 'monero_wasm');
+    wasmCrateDir = path.join(
+      projectRoot,
+      'vendor',
+      'monero-ffi',
+      'native',
+      'monero_wasm',
+    );
+    wasmWorkerSource = path.join(
+      projectRoot,
+      'vendor',
+      'monero-ffi',
+      'web',
+      'pkg',
+      'monero_wasm_worker.js',
+    );
   }
 
   Future<void> build() async {
@@ -51,14 +66,20 @@ class ExtensionBuilder {
   Future<void> _checkPrerequisites() async {
     print('\nChecking prerequisites...');
 
-    final flutterResult = await _runCommand('flutter', ['--version'], silent: true);
+    final flutterResult = await _runCommand('flutter', [
+      '--version',
+    ], silent: true);
     if (!flutterResult) {
       throw Exception('Flutter is not installed or not in PATH');
     }
 
-    final wasmPackResult = await _runCommand('wasm-pack', ['--version'], silent: true);
+    final wasmPackResult = await _runCommand('wasm-pack', [
+      '--version',
+    ], silent: true);
     if (!wasmPackResult) {
-      throw Exception('wasm-pack is not installed. Install with: cargo install wasm-pack');
+      throw Exception(
+        'wasm-pack is not installed. Install with: cargo install wasm-pack',
+      );
     }
 
     print('Prerequisites OK');
@@ -66,23 +87,36 @@ class ExtensionBuilder {
 
   Future<void> _buildWasm() async {
     print('\nBuilding WASM with wasm-pack...');
-    final success = await _runCommand(
-      'wasm-pack',
-      ['build', '--target', 'web', '--release', '--out-dir', path.join(projectRoot, 'web', 'pkg')],
-      workingDir: wasmCrateDir,
-    );
+    final success = await _runCommand('wasm-pack', [
+      'build',
+      '--target',
+      'web',
+      '--release',
+      '--out-dir',
+      path.join(projectRoot, 'web', 'pkg'),
+    ], workingDir: wasmCrateDir);
     if (!success) {
       throw Exception('Failed to build WASM modules');
     }
+
+    final worker = File(wasmWorkerSource);
+    if (!await worker.exists()) {
+      throw Exception('monero-ffi worker source not found: $wasmWorkerSource');
+    }
+    await worker.copy(
+      path.join(projectRoot, 'web', 'pkg', 'monero_wasm_worker.js'),
+    );
   }
 
   Future<void> _buildFlutterWeb() async {
     print('\nBuilding Flutter web...');
-    final success = await _runCommand(
-      'flutter',
-      ['build', 'web', '--csp', '--no-web-resources-cdn', '--release'],
-      workingDir: projectRoot,
-    );
+    final success = await _runCommand('flutter', [
+      'build',
+      'web',
+      '--csp',
+      '--no-web-resources-cdn',
+      '--release',
+    ], workingDir: projectRoot);
     if (!success) {
       throw Exception('Failed to build Flutter web app');
     }
@@ -104,7 +138,9 @@ class ExtensionBuilder {
 
     final webBuild = Directory(webBuildDir);
     if (!await webBuild.exists()) {
-      throw Exception('build/web directory not found. Did Flutter build succeed?');
+      throw Exception(
+        'build/web directory not found. Did Flutter build succeed?',
+      );
     }
 
     await _copyDirectory(webBuild, Directory(extensionDir));
@@ -117,7 +153,9 @@ class ExtensionBuilder {
     final pkgDest = Directory(path.join(extensionDir, 'pkg'));
 
     if (!await pkgSource.exists()) {
-      throw Exception('web/pkg directory not found. Did wasm-pack build succeed?');
+      throw Exception(
+        'web/pkg directory not found. Did wasm-pack build succeed?',
+      );
     }
 
     await _copyDirectory(pkgSource, pkgDest);
@@ -137,7 +175,11 @@ class ExtensionBuilder {
     await sourceFile.copy(manifestDest);
 
     // Copy background.js for full page mode
-    final backgroundSource = path.join(projectRoot, 'extension', 'background.js');
+    final backgroundSource = path.join(
+      projectRoot,
+      'extension',
+      'background.js',
+    );
     final backgroundDest = path.join(extensionDir, 'background.js');
 
     final backgroundFile = File(backgroundSource);
@@ -158,7 +200,10 @@ class ExtensionBuilder {
   }
 
   Future<void> _removeServiceWorker() async {
-    final serviceWorkerPath = path.join(extensionDir, 'flutter_service_worker.js');
+    final serviceWorkerPath = path.join(
+      extensionDir,
+      'flutter_service_worker.js',
+    );
     final serviceWorkerFile = File(serviceWorkerPath);
 
     if (await serviceWorkerFile.exists()) {
@@ -167,7 +212,11 @@ class ExtensionBuilder {
   }
 
   Future<void> _copyDisableServiceWorker() async {
-    final sourcePath = path.join(projectRoot, 'extension', 'disable_service_worker.js');
+    final sourcePath = path.join(
+      projectRoot,
+      'extension',
+      'disable_service_worker.js',
+    );
     final destPath = path.join(extensionDir, 'disable_service_worker.js');
 
     final sourceFile = File(sourcePath);
@@ -254,7 +303,10 @@ class ExtensionBuilder {
   <script src="flutter_bootstrap.js"></script>
 </body>''';
 
-    final bodyPattern = RegExp(r'<body>\s*<script src="flutter_bootstrap\.js"( async)?></script>\s*</body>', dotAll: true);
+    final bodyPattern = RegExp(
+      r'<body>\s*<script src="flutter_bootstrap\.js"( async)?></script>\s*</body>',
+      dotAll: true,
+    );
     content = content.replaceAll(bodyPattern, bodyScripts);
 
     await indexFile.writeAsString(content);
@@ -298,7 +350,9 @@ class ExtensionBuilder {
     print('  Location: build/extension/');
     print('  Package: build/monero-extension.zip');
     print('\nLoad in Chrome:');
-    print('  chrome://extensions -> Developer mode -> Load unpacked -> build/extension/');
+    print(
+      '  chrome://extensions -> Developer mode -> Load unpacked -> build/extension/',
+    );
     print('  See docs/extension_testing.md for more\n');
   }
 
@@ -340,10 +394,14 @@ class ExtensionBuilder {
 
     await for (final entity in source.list(recursive: false)) {
       if (entity is Directory) {
-        final newDirectory = Directory(path.join(destination.path, path.basename(entity.path)));
+        final newDirectory = Directory(
+          path.join(destination.path, path.basename(entity.path)),
+        );
         await _copyDirectory(entity, newDirectory);
       } else if (entity is File) {
-        final newFile = File(path.join(destination.path, path.basename(entity.path)));
+        final newFile = File(
+          path.join(destination.path, path.basename(entity.path)),
+        );
         await entity.copy(newFile.path);
       }
     }

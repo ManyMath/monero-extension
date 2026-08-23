@@ -53,8 +53,8 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 add_subdirectory("runner")
 
 # === Rust native library (monero_wasm) ===
-set(RUST_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/../native/monero_wasm/Cargo.toml")
-set(RUST_TARGET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../target")
+set(RUST_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/../vendor/monero-ffi/native/monero_wasm/Cargo.toml")
+set(RUST_TARGET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../vendor/monero-ffi/target")
 set(RUST_LIB_NAME "monero_wasm.dll")
 
 # For multi-config generators (Visual Studio), we always build release

@@ -10,6 +10,7 @@
 # fails is reported as a failure. The two are never conflated.
 #
 #   scripts/test-all.sh
+#   MONERO_TEST_HEADED=1 scripts/test-all.sh  # show E2E Chrome windows for debugging
 #
 # Exits non-zero if any tier fails, and reports which.
 set -eu
@@ -107,6 +108,9 @@ else
 fi
 
 step "end-to-end in a real browser (puppeteer)"
+# Puppeteer runs Chrome headlessly by default. Set MONERO_TEST_HEADED=1 when a failing
+# test needs visual debugging; the normal full suite must not steal desktop focus eleven
+# times just because each Jest file owns an isolated browser session.
 # 70 tests, ~460 assertions, and until now nothing ran any of them. The whole suite runs
 # here, not a hand-picked subset: the files that need a live daemon skip themselves through
 # fixtures.js's probeNode(), so with no node reachable this settles at 61 passed / 9

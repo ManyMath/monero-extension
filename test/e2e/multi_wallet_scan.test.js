@@ -51,7 +51,7 @@ describe('Multi-Wallet Scan & Address Derivation', () => {
     }
 
     browser = await puppeteer.launch({
-      headless: false,
+      headless: process.env.MONERO_TEST_HEADED !== '1',
       args: [
         `--disable-extensions-except=${EXT_PATH}`,
         `--load-extension=${EXT_PATH}`,

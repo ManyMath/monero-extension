@@ -14,6 +14,7 @@ const TRANSFER_AMOUNT_ATOMIC = 1_000_000_000_000;
 const BLOCKS_TO_MINE = 80;
 const RING_SIZE = 16;
 const MULTI_TX_DESTINATION_COUNT = 20;
+const describeRegtest = process.env.MONERO_BIN_DIR ? describe : describe.skip;
 
 function freePort() {
   return new Promise((resolve, reject) => {
@@ -285,7 +286,7 @@ async function prepareWallet2UnsignedTxset(harness) {
   };
 }
 
-describe('Wallet2 Regtest Browser UAT', () => {
+describeRegtest('Wallet2 Regtest Browser UAT', () => {
   let browser;
   let extPage;
   let harness;

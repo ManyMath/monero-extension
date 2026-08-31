@@ -11,8 +11,9 @@ const {
 const NODE_URL = (process.env.EXTERNAL_STAGENET_NODE_URL || '').replace(/\/+$/, '');
 const KNOWN_ACCOUNT_SCAN_HEIGHT = 1384526;
 const KNOWN_ACCOUNT0_OUTPUT_TX = '07a561e60118c0a485b20bbfac787fd8efead96a9f422d9dff4a86f2985db7c5';
+const describeExternalStagenet = NODE_URL ? describe : describe.skip;
 
-describe('External Stagenet Acceptance', () => {
+describeExternalStagenet('External Stagenet Acceptance', () => {
   let browser;
   let extPage;
   let extId;

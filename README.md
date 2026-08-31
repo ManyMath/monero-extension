@@ -34,6 +34,11 @@ dart run tool/build_ui.dart
 ```
 
 ## Testing
+Routine Rust-adapter and headless Flutter tests:
+```sh
+scripts/test-fast.sh
+```
+
 Everything, in one command:
 ```sh
 scripts/test-all.sh
